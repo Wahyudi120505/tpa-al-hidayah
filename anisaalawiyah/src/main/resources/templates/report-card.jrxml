@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="Rapor_Santri"
+              language="java"
+              pageWidth="595"
+              pageHeight="842"
+              columnWidth="535"
+              leftMargin="30"
+              rightMargin="30"
+              topMargin="20"
+              bottomMargin="20">
+
+    <parameter name="student_id" class="java.lang.Long"/>
+    <parameter name="print_date" class="java.lang.String"/>
+    <parameter name="logo1" class="java.lang.String"/>
+    <parameter name="logo2" class="java.lang.String"/>
+
+    <queryString><![CDATA[
+        SELECT 
+            s.name AS subject_name,
+            g.score,
+            st.name AS student_name,
+            st.class_level,
+            g.semester,
+            g.academic_year
+        FROM grade g
+        JOIN subject s ON g.subject_id = s.id
+        JOIN student st ON g.student_id = st.id
+        WHERE g.row_status = 1 AND st.row_status = 1 AND g.student_id = $P{student_id}
+    ]]></queryString>
+
+    <field name="subject_name" class="java.lang.String"/>
+    <field name="score" class="java.lang.Double"/>
+    <field name="class_level" class="java.lang.String"/>
+    <field name="semester" class="java.lang.String"/>
+    <field name="academic_year" class="java.lang.String"/>
+    <field name="student_name" class="java.lang.String"/>
+
+    <variable name="totalScore" class="java.lang.Double" calculation="Sum">
+        <variableExpression><![CDATA[$F{score}]]></variableExpression>
+    </variable>
+    <variable name="subjectCount" class="java.lang.Integer" calculation="Count">
+        <variableExpression><![CDATA[$F{score}]]></variableExpression>
+    </variable>
+    <variable name="averageScore" class="java.lang.Double" calculation="Nothing">
+        <variableExpression><![CDATA[$V{totalScore}.doubleValue() / $V{subjectCount}]]></variableExpression>
+    </variable>
+
+    <title>
+        <band height="160">
+               <image>
+                <reportElement x="0" y="0" width="80" height="50"/>
+                <imageExpression><![CDATA[$P{logo1}]]></imageExpression>
+            </image>
+            <image>
+                <reportElement x="210" y="0" width="220" height="70"/>
+                <imageExpression><![CDATA[$P{logo2}]]></imageExpression>
+            </image>
+
+            <staticText>
+                <reportElement x="20" y="70" width="475" height="20"/>
+                <textElement textAlignment="Center">
+                    <font size="14" isBold="true"/>
+                </textElement>
+                <text><![CDATA[RAPOR SANTRI TPA AL-HIDAYAH]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="0" y="100" width="260" height="15"/>
+                <textElement textAlignment="Justified">
+                    <font size="11" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Nama: " + $F{student_name}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="130" width="260" height="15"/>
+                <textElement textAlignment="Justified">
+                    <font size="11"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Kelas/Tingkat: " + $F{class_level}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="330" y="100" width="180" height="15"/>
+                <textElement textAlignment="Justified">
+                    <font size="11"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Semester: " + $F{semester}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="330" y="130" width="205" height="15"/>
+                <textElement textAlignment="Justified">
+                    <font size="11"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Tahun Ajaran: " + $F{academic_year}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="25">
+            <staticText>
+                <reportElement x="0" y="0" width="30" height="25"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[No]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="30" y="0" width="220" height="25"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[Mata Pelajaran]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="250" y="0" width="80" height="25"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[Angka]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="330" y="0" width="50" height="25"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[Huruf]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="380" y="0" width="155" height="25"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[Nilai Rata-rata Kelas]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="30" height="20"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="30" y="0" width="220" height="20"/>
+                   <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Left">
+                    <paragraph leftIndent="5"/>
+                </textElement>
+
+                <textFieldExpression><![CDATA[$F{subject_name}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="250" y="0" width="80" height="20"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$F{score}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="330" y="0" width="50" height="20"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[
+                    $F{score} >= 80 ? "A" :
+                    $F{score} >= 70 ? "B" :
+                    $F{score} >= 50 ? "C" : "D"
+                ]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="380" y="0" width="155" height="20"/>
+                <box><pen lineWidth="0.5"/></box>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA["-"]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <summary>
+        <band height="148">
+            <staticText>
+                <reportElement x="50" y="10" width="150" height="20"/>
+                <textElement textAlignment="Left">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Rata-rata Nilai:]]></text>
+            </staticText>
+            <textField pattern="#0.00">
+                <reportElement x="270" y="10" width="50" height="20"/>
+                <textElement textAlignment="Left"/>
+                <textFieldExpression><![CDATA[$V{averageScore}]]></textFieldExpression>
+            </textField>
+
+            <staticText>
+                <reportElement x="10" y="55" width="200" height="15"/>
+                <textElement textAlignment="Center">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Mengetahui,]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="10" y="70" width="200" height="15"/>
+                <textElement textAlignment="Center">
+                    <font isItalic="true"/>
+                </textElement>
+                <text><![CDATA[Wali Kelas]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="290" y="55" width="200" height="15"/>
+                <textElement textAlignment="Center">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Bandung, $P{print_date}]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="290" y="70" width="200" height="15"/>
+                <textElement textAlignment="Center">
+                    <font isItalic="true"/>
+                </textElement>
+                <text><![CDATA[Kepala TPA Al-Hidayah]]></text>
+            </staticText>
+            <line>
+                <reportElement x="20" y="147" width="200" height="1"/>
+            </line>
+            <line>
+                <reportElement x="300" y="146" width="200" height="2"/>
+            </line>
+        </band>
+    </summary>
+
+</jasperReport>
