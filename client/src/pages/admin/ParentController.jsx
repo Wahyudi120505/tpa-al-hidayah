@@ -11,6 +11,9 @@ import {
   Plus,
   Edit,
   Trash2,
+  Info,
+  Users,
+  X,
 } from "lucide-react";
 
 const ParentController = () => {
@@ -20,6 +23,8 @@ const ParentController = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [newParentModal, setNewParentModal] = useState(false);
+  const [infoModal, setInfoModal] = useState(false);
+  const [detailInfoModal, setDetailInfoModal] = useState({});
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,6 +76,7 @@ const ParentController = () => {
       setError("Gagal mengambil data orang tua");
     } finally {
       setLoading(false);
+      // fetchData();
     }
   };
 
@@ -137,6 +143,30 @@ const ParentController = () => {
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "DESC" ? "ASC" : "DESC"));
+  };
+
+  const handleClick = async (id) => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(`http://localhost:8080/api/parents/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jsonData = await response.json();
+      setDetailInfoModal(jsonData);
+      setInfoModal(true);
+    } catch (error) {
+      // alert("ini " + detailInfoModal);
+      console.error("Gagal mengambil detail data:", error);
+    }
   };
 
   const handleDelete = async (e) => {
@@ -263,7 +293,6 @@ const ParentController = () => {
             </form>
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -273,19 +302,7 @@ const ParentController = () => {
           ) : error ? (
             <div className="text-center py-12">
               <div className="text-red-500 mb-2">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <Info className="mx-auto h-12 w-12" />
               </div>
               <p className="text-red-600 font-medium">{error}</p>
               <button
@@ -298,19 +315,7 @@ const ParentController = () => {
           ) : data.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.196-2.12l-.825 1.632zM9 20H4v-2a3 3 0 015.196-2.12l.825 1.632zM21 12a4 4 0 00-4-4H7a4 4 0 00-4 4v8h18v-8z"
-                  />
-                </svg>
+                <Users className="mx-auto h-12 w-12" />
               </div>
               <p className="text-gray-500 text-lg font-medium">
                 {searchQuery
@@ -393,6 +398,13 @@ const ParentController = () => {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
+                          <button
+                            onClick={() => handleClick(item.id)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                            title="Delete"
+                          >
+                            <Info className="w-5 h-5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -402,7 +414,6 @@ const ParentController = () => {
             </div>
           )}
         </div>
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
@@ -457,7 +468,6 @@ const ParentController = () => {
             </div>
           </div>
         )}
-
         {/* Summary Stats */}
         {data.length > 0 && (
           <div className="mt-6 bg-emerald-50 rounded-lg p-4">
@@ -476,78 +486,198 @@ const ParentController = () => {
             </div>
           </div>
         )}
-
-        {newParentModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-md w-[300px] relative">
+        {infoModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
               <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-black"
-                onClick={() => setNewParentModal(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setInfoModal(false)}
+                aria-label="Tutup modal"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-2">
-                  <label htmlFor="name" className="block text-sm font-medium">
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Detail Orang Tua
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    ID
+                  </label>
+                  <p className="text-gray-900 font-medium mt-1">
+                    {detailInfoModal.id || "-"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Nama
                   </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
-                  />
+                  <p className="text-gray-900 font-medium mt-1">
+                    {detailInfoModal.name || "-"}
+                  </p>
                 </div>
-                <div className="mb-2">
-                  <label htmlFor="email" className="block text-sm font-medium">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Email
                   </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
-                  />
+                  <p className="text-gray-900 font-medium mt-1">
+                    {detailInfoModal.email || "-"}
+                  </p>
                 </div>
-                <div className="mb-2">
-                  <label htmlFor="noHp" className="block text-sm font-medium">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     No Telpon
                   </label>
-                  <input
-                    type="text"
-                    name="noHp"
-                    value={form.noHp}
-                    onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
-                  />
+                  <p className="text-gray-900 font-medium mt-1">
+                    {detailInfoModal.noHp || "-"}
+                  </p>
                 </div>
-                <div className="mb-4">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium"
-                  >
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
-                  />
-                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  onClick={() => setInfoModal(false)}
                 >
-                  Tambah
+                  Tutup
                 </button>
-              </form>
+                <button
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  onClick={() => {
+                    console.log("Edit clicked for ID:", detailInfoModal.id);
+                  }}
+                >
+                  Edit
+                </button>
+              </div>
             </div>
           </div>
         )}
+        {newParentModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setNewParentModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Modal Header */}
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Tambah Orang Tua
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Nama
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="noHp"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      No Telpon
+                    </label>
+                    <input
+                      type="text"
+                      id="noHp"
+                      name="noHp"
+                      value={form.noHp}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => setNewParentModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading} // Assuming you add a loading state
+                  >
+                    {loading ? "Memuat..." : "Tambah"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}{" "}
       </div>
     </>
   );
