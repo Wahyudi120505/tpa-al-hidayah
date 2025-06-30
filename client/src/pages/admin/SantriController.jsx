@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
+import Select from 'react-select';
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
 import {
@@ -12,6 +13,15 @@ import {
   Edit,
   Trash2,
   X,
+  Info,
+  User,
+  Calendar,
+  Phone,
+  Mail,
+  BadgeInfo,
+  Users,
+  Hash,
+  Baby,
 } from "lucide-react";
 
 const SantriController = () => {
@@ -23,7 +33,9 @@ const SantriController = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [newSantriModal, setNewSantriModal] = useState(false);
-
+  const [tampIdParent, setTampIdParent] = useState([]);
+  const [infoModal, setInfoModal] = useState(false);
+  const [detailInfoModal, setDetailInfoModal] = useState({});
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -143,6 +155,29 @@ const SantriController = () => {
     }));
   };
 
+  const fetchParentData = async () => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch("http://localhost:8080/api/parents", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setTampIdParent(data.content);
+    } catch (error) {
+      console.error("Error fetching parent data:", error);
+      return [];
+    }
+
+  };
+
+  useEffect(() => {
+    fetchParentData();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -178,7 +213,6 @@ const SantriController = () => {
 
   const handleShowEditModal = (student) => {
     setSelectedStudentId(student.id);
-    alert(student.responeParent.id);
     setForm({
       id: student.id || "",
       name: student.name || "",
@@ -230,6 +264,35 @@ const SantriController = () => {
     } catch (error) {
       console.error("Error updating student:", error);
       alert("Gagal memperbarui data santri");
+    }
+  };
+
+  const parentOptions = tampIdParent.map((parent) => ({
+    value: parent.id,
+    label: `${parent.name} (ID: ${parent.id})`,
+  }));
+
+  const handleClick = async (id) => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(`http://localhost:8080/api/students/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jsonData = await response.json();
+      setDetailInfoModal(jsonData);
+      setInfoModal(true);
+    } catch (error) {
+      // alert("ini " + detailInfoModal);
+      console.error("Gagal mengambil detail data:", error);
     }
   };
 
@@ -315,11 +378,10 @@ const SantriController = () => {
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center space-x-2 px-3 py-2 border rounded-lg transition-colors ${
-                  showFilters
-                    ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                    : "border-gray-300 hover:bg-gray-50"
-                }`}
+                className={`flex items-center space-x-2 px-3 py-2 border rounded-lg transition-colors ${showFilters
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                  : "border-gray-300 hover:bg-gray-50"
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Filter</span>
@@ -506,19 +568,18 @@ const SantriController = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            item.gender === "L" || item.gender === "L"
-                              ? "bg-blue-100 text-blue-800"
-                              : item.gender === "P" || item.gender === "P"
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.gender === "L" || item.gender === "L"
+                            ? "bg-blue-100 text-blue-800"
+                            : item.gender === "P" || item.gender === "P"
                               ? "bg-pink-100 text-pink-800"
                               : "bg-gray-100 text-gray-800"
-                          }`}
+                            }`}
                         >
                           {item.gender === "L"
                             ? "L"
                             : item.gender === "P"
-                            ? "P"
-                            : item.gender || "-"}
+                              ? "P"
+                              : item.gender || "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
@@ -546,6 +607,13 @@ const SantriController = () => {
                             title="Delete"
                           >
                             <Trash2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleClick(item.id)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                            title="Delete"
+                          >
+                            <Info className="w-5 h-5" />
                           </button>
                         </div>
                       </td>
@@ -587,11 +655,10 @@ const SantriController = () => {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      currentPage === pageNum
-                        ? "bg-emerald-600 text-white"
-                        : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                    }`}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === pageNum
+                      ? "bg-emerald-600 text-white"
+                      : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                      }`}
                   >
                     {pageNum}
                   </button>
@@ -677,15 +744,18 @@ const SantriController = () => {
                     >
                       Gender
                     </label>
-                    <input
-                      type="text"
+                    <select
                       id="gender"
                       name="gender"
                       value={form.gender}
                       onChange={handleChange}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
-                    />
+                    >
+                      <option value="">Pilih Gender</option>
+                      <option value="L">L</option>
+                      <option value="P">P</option>
+                    </select>
                   </div>
                   <div>
                     <label
@@ -710,31 +780,42 @@ const SantriController = () => {
                     >
                       ClassLevel
                     </label>
-                    <input
-                      type="number"
+                    <select
                       id="classLevel"
                       name="classLevel"
                       value={form.classLevel}
                       onChange={handleChange}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
-                    />
+                    >
+                      <option value="">Pilih Kelas</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                    </select>
                   </div>
                   <div>
                     <label
                       htmlFor="parentId"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
                       Parent
                     </label>
-                    <input
-                      type="number"
-                      id="parentId"
+                    <Select
+                      inputId="parentId"
                       name="parentId"
-                      value={form.parentId}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
+                      options={parentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({ ...prev, parentId: selectedOption?.value || "" }))
+                      }
+                      value={parentOptions.find((opt) => opt.value === form.parentId) || null}
+                      placeholder="Pilih Orang Tua..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
                     />
                   </div>
                 </div>
@@ -761,10 +842,11 @@ const SantriController = () => {
           </div>
         )}{" "}
         {showEditModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-gray-300 bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-md w-[300px] relative">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
+              {/* Tombol Tutup */}
               <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-black"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
                 onClick={() => {
                   setShowEditModal(false);
                   setSelectedStudentId(null);
@@ -777,12 +859,20 @@ const SantriController = () => {
                     parent_id: 0,
                   });
                 }}
+                aria-label="Tutup Modal"
               >
                 ✕
               </button>
-              <form onSubmit={handleEdit}>
-                <div className="mb-2">
-                  <label htmlFor="name" className="block text-sm font-medium">
+
+              {/* Judul */}
+              <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
+                Edit Data Santri
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleEdit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Nama
                   </label>
                   <input
@@ -790,19 +880,20 @@ const SantriController = () => {
                     name="name"
                     value={form.name}
                     onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   />
                 </div>
-                <div className="mb-2">
-                  <label htmlFor="gender" className="block text-sm font-medium">
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Gender
                   </label>
                   <select
                     name="gender"
                     value={form.gender}
                     onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   >
                     <option value="">Pilih Gender</option>
@@ -810,11 +901,9 @@ const SantriController = () => {
                     <option value="P">Perempuan</option>
                   </select>
                 </div>
-                <div className="mb-2">
-                  <label
-                    htmlFor="birthDate"
-                    className="block text-sm font-medium"
-                  >
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Tanggal Lahir
                   </label>
                   <input
@@ -822,22 +911,20 @@ const SantriController = () => {
                     name="birthDate"
                     value={form.birthDate}
                     onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   />
                 </div>
-                <div className="mb-4">
-                  <label
-                    htmlFor="classLevel"
-                    className="block text-sm font-medium"
-                  >
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Level Kelas
                   </label>
                   <select
                     name="classLevel"
                     value={form.classLevel}
                     onChange={handleChange}
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   >
                     <option value="">Pilih Level</option>
@@ -849,13 +936,120 @@ const SantriController = () => {
                     <option value="6">Level 6</option>
                   </select>
                 </div>
+
                 <button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded w-full"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
                 >
                   Simpan Perubahan
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+        {infoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
+
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
+                onClick={() => setInfoModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Header */}
+              <h2 className="text-3xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2">
+                <Users className="w-6 h-6" /> Detail Santri
+              </h2>
+
+              {/* Detail Santri */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">ID</label>
+                    <p className="font-semibold">{detailInfoModal.id || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Nama</label>
+                    <p className="font-semibold">{detailInfoModal.name || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Gender</label>
+                    <p className="inline-block mt-1 px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
+                      {detailInfoModal.gender === "L" ? "Laki-laki" : "Perempuan"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Tgl Lahir</label>
+                    <p className="font-semibold">{detailInfoModal.birthDate || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Baby className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Kelas</label>
+                    <p className="font-semibold">{detailInfoModal.classLevel || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Parent Info */}
+              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
+                <Users className="w-5 h-5" /> Orang Tua
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">ID</label>
+                    <p className="font-semibold">{detailInfoModal.responeParent?.id || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Nama</label>
+                    <p className="font-semibold">{detailInfoModal.responeParent?.name || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Email</label>
+                    <p className="font-semibold break-words">{detailInfoModal.responeParent?.email || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">No HP</label>
+                    <p className="font-semibold">{detailInfoModal.responeParent?.noHp || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 flex justify-end space-x-4">
+                <button
+                  className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                  onClick={() => setInfoModal(false)}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         )}
