@@ -51,7 +51,7 @@ const Header = () => {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
             <button
-              onClick={() => navigate("/parent")}
+              onClick={() => navigate("")}
               className={`flex items-center transition-colors text-sm font-medium ${
                 isScrolled ? 'text-white hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'
               }`}
@@ -60,7 +60,7 @@ const Header = () => {
               Home
             </button>
             <button
-              onClick={() => navigate("/hafalan")}
+              onClick={() => navigate("hafalan")}
               className={`flex items-center transition-colors text-sm font-medium ${
                 isScrolled ? 'text-white hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'
               }`}

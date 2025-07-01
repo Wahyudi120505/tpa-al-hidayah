@@ -59,11 +59,26 @@ public class LoginServiceImpl implements LoginService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or password");
             }
 
-            ResponLogin loginResponseDto = new ResponLogin();
-            loginResponseDto.setEmail(user.getEmail());
-            loginResponseDto.setToken(jwtUtil.generateToken(user));
-            loginResponseDto.setRole(user.getRole().name()); 
-            return loginResponseDto;
+            if (user.getRole() == ERole.PARENT) {
+                if (user.getParent() == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent not found");
+                }
+                ResponLogin loginResponseDto = new ResponLogin();
+                loginResponseDto.setIdAppUser(user.getId());
+                loginResponseDto.setEmail(user.getEmail());
+                loginResponseDto.setToken(jwtUtil.generateToken(user));
+                loginResponseDto.setRole(user.getRole().name()); 
+                loginResponseDto.setParentId(user.getParent().getId());
+                return loginResponseDto;
+            }else {
+                ResponLogin loginResponseDto = new ResponLogin();
+                loginResponseDto.setIdAppUser(user.getId());
+                loginResponseDto.setEmail(user.getEmail());
+                loginResponseDto.setToken(jwtUtil.generateToken(user));
+                loginResponseDto.setRole(user.getRole().name());
+                return loginResponseDto;
+            }
+
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }

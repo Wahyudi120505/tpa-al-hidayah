@@ -8,8 +8,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResponLogin {
+    private Long idAppUser;
     private String email;
     private String token;
     private String role;
+    private Long parentId;
     
 }

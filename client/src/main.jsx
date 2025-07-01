@@ -15,6 +15,7 @@ import PaymentController from "./pages/admin/PaymentController.jsx";
 import GradeController from "./pages/admin/GradeController.jsx";
 import ParentLayout from "./layout/ParentLayout.jsx";
 import HomepageParent from "./pages/parent/HomePageParent.jsx";
+import HafalanStudent from "./pages/parent/HafalanStudent.jsx";
 
 const router = createBrowserRouter([
   {
@@ -76,6 +77,10 @@ const router = createBrowserRouter([
           {
             path:"",
             element:<HomepageParent />
+          },
+          {
+            path:"hafalan",
+            element:<HafalanStudent />
           },
         ]
       },
