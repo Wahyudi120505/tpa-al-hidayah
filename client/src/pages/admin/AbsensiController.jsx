@@ -31,7 +31,7 @@ const AbsensiController = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [newAbsensiModal, setNewAbsensiModal] = useState(false);
-  const [tampIdStrudent, setTampIdStrudent] = useState([]);
+  const [tampIdStudent, setTampIdStudent] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAbsensiId, setSelectedAbsensiId] = useState(null);
   const [infoModal, setInfoModal] = useState(false);
@@ -147,15 +147,34 @@ const AbsensiController = () => {
   const fetchStudentData = async () => {
     try {
       const token = Cookies.get("authToken");
-      const response = await fetch("http://localhost:8080/api/students", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+
+      const resMeta = await fetch(
+        "http://localhost:8080/api/students?page=1&size=1&sortOrder=ASC",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const meta = await resMeta.json();
+      const total = meta.totalElements || 1000; 
+      
+      const response = await fetch(
+        `http://localhost:8080/api/students?page=1&size=${total}&sortOrder=ASC`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       const data = await response.json();
-      setTampIdStrudent(data.content);
+      setTampIdStudent(data.content || []);
     } catch (error) {
       console.error("Error fetching parent data:", error);
       return [];
@@ -272,7 +291,7 @@ const AbsensiController = () => {
     }));
   };
 
-  const studentOptions = tampIdStrudent.map((student) => ({
+  const studentOptions = tampIdStudent.map((student) => ({
     value: student.id,
     label: `${student.name} (ID: ${student.id})`,
   }));

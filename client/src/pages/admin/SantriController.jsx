@@ -158,15 +158,34 @@ const SantriController = () => {
   const fetchParentData = async () => {
     try {
       const token = Cookies.get("authToken");
-      const response = await fetch("http://localhost:8080/api/parents", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+
+      const resMeta = await fetch(
+        "http://localhost:8080/api/parents?page=1&size=1&sortOrder=ASC",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const meta = await resMeta.json();
+      const total = meta.totalElements || 1000; 
+      
+      const response = await fetch(
+        `http://localhost:8080/api/parents?page=1&size=${total}&sortOrder=ASC`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       const data = await response.json();
-      setTampIdParent(data.content);
+      setTampIdParent(data.content || []);
     } catch (error) {
       console.error("Error fetching parent data:", error);
       return [];
@@ -270,6 +289,7 @@ const SantriController = () => {
     value: parent.id,
     label: `${parent.name} (ID: ${parent.id})`,
   }));
+  console.log(tampIdParent);
 
   const handleClick = async (id) => {
     try {
@@ -818,7 +838,7 @@ const SantriController = () => {
                       }
                       value={
                         parentOptions.find(
-                          (opt) => opt.value === form.parentId
+                          (opt) => opt.value === form.parent_id
                         ) || null
                       }
                       placeholder="Pilih Orang Tua..."
