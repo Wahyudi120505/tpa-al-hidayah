@@ -22,6 +22,7 @@ import {
   BadgeInfo,
   Calendar,
   Baby,
+  BookOpen,
 } from "lucide-react";
 
 const AbsensiController = () => {
@@ -36,6 +37,12 @@ const AbsensiController = () => {
   const [selectedAbsensiId, setSelectedAbsensiId] = useState(null);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
+  const [form, setForm] = useState({
+    id: "",
+    date: new Date().toISOString().split("T")[0],
+    status: "",
+    student_id: 0,
+  });
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,15 +53,15 @@ const AbsensiController = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const today = new Date().toISOString().split("T")[0];
-  const [form, setForm] = useState({
-    id: "",
-    date: today,
-    status: "",
-    student_id: 0,
-  });
+
+  // State for bulk attendance
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [bulkDate, setBulkDate] = useState(today);
+  const [classLevelFilter, setClassLevelFilter] = useState("");
 
   useEffect(() => {
     fetchData();
+    fetchStudentData();
   }, [currentPage, pageSize, sortOrder, searchQuery, dateFilter, statusFilter]);
 
   const fetchData = async () => {
@@ -109,41 +116,6 @@ const AbsensiController = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStudentData();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = Cookies.get("authToken");
-
-      const response = await fetch("http://localhost:8080/api/attendances", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (response.ok) {
-        alert("Data absen santri berhasil ditambahkan!");
-        setForm({
-          date: "",
-          status: "",
-          studentId: 0,
-        });
-        setNewAbsensiModal(false);
-      } else {
-        alert("Gagal mengirim data");
-      }
-    } catch (err) {
-      console.error("Error saat mengirim data:", err);
-      alert("Terjadi kesalahan server");
-    }
-  };
-
   const fetchStudentData = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -160,8 +132,8 @@ const AbsensiController = () => {
       );
 
       const meta = await resMeta.json();
-      const total = meta.totalElements || 1000; 
-      
+      const total = meta.totalElements || 1000;
+
       const response = await fetch(
         `http://localhost:8080/api/students?page=1&size=${total}&sortOrder=ASC`,
         {
@@ -175,9 +147,75 @@ const AbsensiController = () => {
 
       const data = await response.json();
       setTampIdStudent(data.content || []);
+      setAttendanceData(
+        (data.content || []).map((student) => ({
+          studentId: student.id,
+          status: "",
+        }))
+      );
     } catch (error) {
-      console.error("Error fetching parent data:", error);
-      return [];
+      console.error("Error fetching student data:", error);
+      setError("Gagal mengambil data santri");
+    }
+  };
+
+  const handleBulkAttendanceChange = (studentId, status) => {
+    setAttendanceData((prev) =>
+      prev.map((item) =>
+        item.studentId === studentId ? { ...item, status } : item
+      )
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
+      const validAttendances = attendanceData
+        .filter((item) => item.status)
+        .map((item) => ({
+          date: bulkDate,
+          status: item.status,
+          studentId: item.studentId,
+        }));
+
+      if (validAttendances.length === 0) {
+        alert("Pilih setidaknya satu status kehadiran untuk santri!");
+        return;
+      }
+
+      const responses = await Promise.all(
+        validAttendances.map((attendance) =>
+          fetch("http://localhost:8080/api/attendances", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(attendance),
+          })
+        )
+      );
+
+      const allSuccessful = responses.every((res) => res.ok);
+      if (allSuccessful) {
+        alert("Data absensi berhasil ditambahkan!");
+        setAttendanceData(
+          tampIdStudent.map((student) => ({
+            studentId: student.id,
+            status: "",
+          }))
+        );
+        setBulkDate(today);
+        setClassLevelFilter("");
+        setNewAbsensiModal(false);
+        fetchData();
+      } else {
+        alert("Gagal menambahkan beberapa data absensi");
+      }
+    } catch (err) {
+      console.error("Error saat mengirim data:", err);
+      alert("Terjadi kesalahan server");
     }
   };
 
@@ -188,6 +226,7 @@ const AbsensiController = () => {
       date: absensi.date
         ? new Date(absensi.date).toISOString().split("T")[0]
         : "",
+      status: absensi.status || "",
       student_id: absensi.responseStudent.id,
     });
     setShowEditModal(true);
@@ -205,7 +244,11 @@ const AbsensiController = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(form),
+          body: JSON.stringify({
+            date: form.date,
+            status: form.status,
+            studentId: form.student_id,
+          }),
         }
       );
 
@@ -213,7 +256,7 @@ const AbsensiController = () => {
         alert("Data absensi berhasil diperbarui!");
         setForm({
           id: "",
-          date: "",
+          date: today,
           status: "",
           student_id: 0,
         });
@@ -227,8 +270,8 @@ const AbsensiController = () => {
         );
       }
     } catch (error) {
-      console.error("Error updating absesi:", error);
-      alert("Gagal memperbarui data santri");
+      console.error("Error updating absensi:", error);
+      alert("Gagal memperbarui data absensi");
     }
   };
 
@@ -296,6 +339,17 @@ const AbsensiController = () => {
     label: `${student.name} (ID: ${student.id})`,
   }));
 
+  // Get unique class levels for filter
+  const classLevels = [
+    ...new Set(
+      tampIdStudent.map((student) => student.classLevel).filter(Boolean)
+    ),
+  ].sort();
+
+  const filteredStudents = classLevelFilter
+    ? tampIdStudent.filter((student) => student.classLevel === classLevelFilter)
+    : tampIdStudent;
+
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "HADIR":
@@ -350,7 +404,6 @@ const AbsensiController = () => {
               onSubmit={handleSearch}
               className="flex flex-col lg:flex-row gap-4 items-end"
             >
-              {/* Search Input */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Cari Santri
@@ -367,7 +420,6 @@ const AbsensiController = () => {
                 </div>
               </div>
 
-              {/* Page Size */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Per Halaman
@@ -387,7 +439,6 @@ const AbsensiController = () => {
                 </select>
               </div>
 
-              {/* Sort Order */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Urutan
@@ -406,7 +457,6 @@ const AbsensiController = () => {
                 </button>
               </div>
 
-              {/* Filter Toggle */}
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
@@ -420,7 +470,6 @@ const AbsensiController = () => {
                 <span>Filter</span>
               </button>
 
-              {/* Action Buttons */}
               <div className="flex space-x-2">
                 <button
                   type="submit"
@@ -439,11 +488,9 @@ const AbsensiController = () => {
               </div>
             </form>
 
-            {/* Advanced Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Date Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Tanggal
@@ -459,7 +506,6 @@ const AbsensiController = () => {
                     />
                   </div>
 
-                  {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Status Kehadiran
@@ -493,19 +539,7 @@ const AbsensiController = () => {
           ) : error ? (
             <div className="text-center py-12">
               <div className="text-red-500 mb-2">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <Info className="mx-auto h-12 w-12 text-gray-700" />
               </div>
               <p className="text-red-600 font-medium">{error}</p>
               <button
@@ -518,19 +552,7 @@ const AbsensiController = () => {
           ) : data.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
+                <BookOpen className="mx-auto h-12 w-12 text-gray-700" />
               </div>
               <p className="text-gray-500 text-lg font-medium">
                 {searchQuery || dateFilter || statusFilter
@@ -561,7 +583,7 @@ const AbsensiController = () => {
                       Status
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aksi
+                      Action
                     </th>
                   </tr>
                 </thead>
@@ -631,7 +653,7 @@ const AbsensiController = () => {
                           <button
                             onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
-                            title="Delete"
+                            title="Detail"
                           >
                             <Info className="w-5 h-5" />
                           </button>
@@ -668,7 +690,6 @@ const AbsensiController = () => {
                 Sebelumnya
               </button>
 
-              {/* Page Numbers */}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 const pageNum = Math.max(1, currentPage - 2) + i;
                 if (pageNum > totalPages) return null;
@@ -716,6 +737,7 @@ const AbsensiController = () => {
             </div>
           </div>
         )}
+        {/* Tambah Absensi Modal */}
         {newAbsensiModal && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
@@ -723,8 +745,7 @@ const AbsensiController = () => {
             role="dialog"
             aria-labelledby="modal-title"
           >
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
-              {/* Close Button */}
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl sm:max-w-5xl transform transition-all duration-300 scale-100">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
                 onClick={() => setNewAbsensiModal(false)}
@@ -733,7 +754,6 @@ const AbsensiController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Modal Header */}
               <h2
                 id="modal-title"
                 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
@@ -741,79 +761,114 @@ const AbsensiController = () => {
                 Tambah Absensi
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
-                <div className="space-y-4">
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
-                      htmlFor="date"
+                      htmlFor="bulkDate"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Tanggal
                     </label>
                     <input
                       type="date"
-                      id="date"
-                      name="date"
-                      value={form.date}
-                      onChange={handleChange}
+                      id="bulkDate"
+                      value={bulkDate}
+                      onChange={(e) => setBulkDate(e.target.value)}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
                     />
                   </div>
                   <div>
                     <label
-                      htmlFor="status"
+                      htmlFor="classLevelFilter"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Status
+                      Filter Kelas
                     </label>
                     <select
-                      id="status"
-                      name="status"
-                      value={form.status}
-                      onChange={handleChange}
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={(e) => setClassLevelFilter(e.target.value)}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
                     >
-                      <option value="">Pilih Status</option>
-                      <option value="HADIR">HADIR</option>
-                      <option value="IZIN">IZIN</option>
-                      <option value="ALFA">ALFA</option>
-                      <option value="SAKIT">SAKIT</option>
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="studentId"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Santri
-                    </label>
-                    <Select
-                      inputId="studentId"
-                      name="studentId"
-                      options={studentOptions}
-                      onChange={(selectedOption) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          studentId: selectedOption?.value || "",
-                        }))
-                      }
-                      value={
-                        studentOptions.find(
-                          (opt) => opt.value === form.studentId
-                        ) || null
-                      }
-                      placeholder="Pilih Santri..."
-                      isClearable
-                      className="react-select-container"
-                      classNamePrefix="react-select"
-                    />
-                  </div>
                 </div>
-
-                {/* Modal Footer */}
+                <div className="overflow-x-auto max-h-96">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Santri
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Hadir
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Izin
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Alfa
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Sakit
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredStudents.map((student) => (
+                        <tr key={student.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                  <span className="text-emerald-600 font-medium text-sm">
+                                    {student.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {student.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Kelas: {student.classLevel || "-"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          {["HADIR", "IZIN", "ALFA", "SAKIT"].map((status) => (
+                            <td
+                              key={status}
+                              className="px-6 py-4 whitespace-nowrap text-center"
+                            >
+                              <input
+                                type="radio"
+                                name={`status-${student.id}`}
+                                checked={
+                                  attendanceData.find(
+                                    (item) => item.studentId === student.id
+                                  )?.status === status
+                                }
+                                onChange={() =>
+                                  handleBulkAttendanceChange(student.id, status)
+                                }
+                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
@@ -825,7 +880,7 @@ const AbsensiController = () => {
                   <button
                     type="submit"
                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
-                    disabled={loading} // Assuming you add a loading state
+                    disabled={loading}
                   >
                     {loading ? "Memuat..." : "Tambah"}
                   </button>
@@ -833,11 +888,11 @@ const AbsensiController = () => {
               </form>
             </div>
           </div>
-        )}{" "}
+        )}
+        {/* Edit Absensi Modal */}
         {showEditModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
-              {/* Tombol Tutup */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
                 onClick={() => {
@@ -845,7 +900,7 @@ const AbsensiController = () => {
                   setSelectedAbsensiId(null);
                   setForm({
                     id: "",
-                    date: "",
+                    date: today,
                     status: "",
                     student_id: 0,
                   });
@@ -855,12 +910,10 @@ const AbsensiController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Judul */}
               <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
                 Edit Absensi
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleEdit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -908,12 +961,12 @@ const AbsensiController = () => {
                     onChange={(selectedOption) =>
                       setForm((prev) => ({
                         ...prev,
-                        studentId: selectedOption?.value || "",
+                        student_id: selectedOption?.value || "",
                       }))
                     }
                     value={
                       studentOptions.find(
-                        (opt) => opt.value === form.studentId
+                        (opt) => opt.value === form.student_id
                       ) || null
                     }
                     placeholder="Pilih Santri..."
@@ -932,10 +985,10 @@ const AbsensiController = () => {
             </div>
           </div>
         )}
+        {/* Info Modal */}
         {infoModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
             <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
-              {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
                 onClick={() => setInfoModal(false)}
@@ -944,12 +997,10 @@ const AbsensiController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Header */}
               <h2 className="text-3xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2">
                 <Users className="w-6 h-6" /> Detail Santri
               </h2>
 
-              {/* Detail Santri */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
                 <div className="flex items-start gap-3">
                   <Hash className="mt-1 text-emerald-500" />
@@ -1042,7 +1093,6 @@ const AbsensiController = () => {
                 </div>
               </div>
 
-              {/* Parent Info */}
               <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
                 <Users className="w-5 h-5" /> Orang Tua
               </h3>
@@ -1097,7 +1147,6 @@ const AbsensiController = () => {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="mt-8 flex justify-end space-x-4">
                 <button
                   className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
