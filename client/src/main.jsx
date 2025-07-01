@@ -13,6 +13,8 @@ import AbsensiController from "./pages/admin/AbsensiController.jsx";
 import StudentMemorizationController from "./pages/admin/StudentMemorizationController.jsx";
 import PaymentController from "./pages/admin/PaymentController.jsx";
 import GradeController from "./pages/admin/GradeController.jsx";
+import ParentLayout from "./layout/ParentLayout.jsx";
+import HomepageParent from "./pages/parent/HomePageParent.jsx";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +25,8 @@ const router = createBrowserRouter([
     path: "/register",
     element: <Register />
   },
+
+  //Admin
   {
     path: "/admin",
     element: <ProtectedRoute allowedRoles={["ADMIN"]} />,
@@ -59,6 +63,24 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+  //Parent
+  {
+    path: "/parent",
+    element: <ProtectedRoute allowedRoles={["PARENT"]} />,
+    children: [
+      {
+        path: "",
+        element: <ParentLayout />,
+        children:[
+          {
+            path:"",
+            element:<HomepageParent />
+          },
+        ]
+      },
+    ],
+  }
 ]);
 
 // Render aplikasi dengan RouterProvider
