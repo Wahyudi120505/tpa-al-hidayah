@@ -482,19 +482,7 @@ const SantriController = () => {
           ) : error ? (
             <div className="text-center py-12">
               <div className="text-red-500 mb-2">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <Info className="mx-auto h-12 w-12 text-gray-700" />
               </div>
               <p className="text-red-600 font-medium">{error}</p>
               <button
@@ -507,19 +495,7 @@ const SantriController = () => {
           ) : data.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.196-2.12l-.825 1.632zM9 20H4v-2a3 3 0 015.196-2.12l.825 1.632zM21 12a4 4 0 00-4-4H7a4 4 0 00-4 4v8h18v-8z"
-                  />
-                </svg>
+                <Users className="mx-auto h-12 w-12 text-gray-700" />
               </div>
               <p className="text-gray-500 text-lg font-medium">
                 {searchQuery || genderFilter || classLevelFilter
@@ -553,7 +529,7 @@ const SantriController = () => {
                       Level Kelas
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aksi
+                      Action
                     </th>
                   </tr>
                 </thead>
