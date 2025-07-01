@@ -18,7 +18,7 @@ import {
   User,
   Mail,
   Phone,
-  UserCircle
+  UserCircle,
 } from "lucide-react";
 
 const ParentController = () => {
@@ -30,6 +30,9 @@ const ParentController = () => {
   const [newParentModal, setNewParentModal] = useState(false);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState(null);
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,6 +130,58 @@ const ParentController = () => {
     }
   };
 
+  const handleShowEditModal = (parent) => {
+    setSelectedParentId(parent.id);
+    setForm({
+      id: parent.id || "",
+      name: parent.name || "",
+      email: parent.email || "",
+      noHp: parent.noHp || "",
+      password: parent.password || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(
+        `http://localhost:8080/api/parents/${selectedParentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(form),
+        }
+      );
+
+      if (response.ok) {
+        alert("Data orang tua berhasil diperbarui!");
+        setForm({
+          id: "",
+          name: "",
+          email: "",
+          noHp: "",
+          password: ""
+        });
+        setShowEditModal(false);
+        setSelectedParentId(null);
+        fetchData(); 
+      } else {
+        const errorData = await response.json();
+        alert(
+          `Gagal memperbarui data: ${errorData.message || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      console.error("Error updating parent:", error);
+      alert("Gagal memperbarui data orang tua");
+    }
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
@@ -173,7 +228,6 @@ const ParentController = () => {
       console.error("Gagal mengambil detail data:", error);
     }
   };
-
 
   return (
     <>
@@ -371,6 +425,7 @@ const ParentController = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
+                            onClick={() => handleShowEditModal(item)}
                             className="text-emerald-600 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-50"
                             title="Edit"
                           >
@@ -425,10 +480,11 @@ const ParentController = () => {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === pageNum
-                      ? "bg-emerald-600 text-white"
-                      : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                      }`}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === pageNum
+                        ? "bg-emerald-600 text-white"
+                        : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -463,6 +519,101 @@ const ParentController = () => {
             </div>
           </div>
         )}
+        {showEditModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
+              {/* Tombol Tutup */}
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedParentId(null);
+                  setForm({
+                    id: "",
+                    name: "",
+                    email: "",
+                    noHp: "",
+                    password: "",
+                  });
+                }}
+                aria-label="Tutup Modal"
+              >
+                <X className="w-6 h-6"/>
+              </button>
+
+              {/* Judul */}
+              <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
+                Edit Data Orang Tua
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleEdit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Nama
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    No Hp
+                  </label>
+                  <input
+                    type="text"
+                    name="noHp"
+                    value={form.noHp}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
         {infoModal && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50 p-4 animate-fade-in"
@@ -471,7 +622,6 @@ const ParentController = () => {
             aria-labelledby="modal-title"
           >
             <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 border border-gray-100 transition-all duration-300 ease-out scale-100">
-
               {/* Tombol Tutup */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
@@ -484,7 +634,9 @@ const ParentController = () => {
               {/* Header */}
               <div className="flex items-center gap-3 mb-6 border-b pb-4">
                 <UserCircle className="w-8 h-8 text-emerald-600" />
-                <h2 className="text-2xl font-bold text-emerald-700">Detail Orang Tua</h2>
+                <h2 className="text-2xl font-bold text-emerald-700">
+                  Detail Orang Tua
+                </h2>
               </div>
 
               {/* Konten */}
@@ -509,7 +661,9 @@ const ParentController = () => {
                   <Mail className="text-emerald-500 w-5 h-5" />
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
-                    <p className="font-medium break-words">{detailInfoModal.email || "-"}</p>
+                    <p className="font-medium break-words">
+                      {detailInfoModal.email || "-"}
+                    </p>
                   </div>
                 </div>
 

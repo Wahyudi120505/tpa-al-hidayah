@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import Select from "react-select";
 import Sidebar from "../../components/admin/Sidebar";
 import {
   Search,
@@ -10,6 +12,16 @@ import {
   Plus,
   Edit,
   Trash2,
+  X,
+  Phone,
+  Mail,
+  User,
+  Hash,
+  Users,
+  Info,
+  BadgeInfo,
+  Calendar,
+  Baby,
 } from "lucide-react";
 
 const AbsensiController = () => {
@@ -18,6 +30,12 @@ const AbsensiController = () => {
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [newAbsensiModal, setNewAbsensiModal] = useState(false);
+  const [tampIdStrudent, setTampIdStrudent] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAbsensiId, setSelectedAbsensiId] = useState(null);
+  const [infoModal, setInfoModal] = useState(false);
+  const [detailInfoModal, setDetailInfoModal] = useState({});
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +45,13 @@ const AbsensiController = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const today = new Date().toISOString().split("T")[0];
+  const [form, setForm] = useState({
+    id: "",
+    date: today,
+    status: "",
+    student_id: 0,
+  });
 
   useEffect(() => {
     fetchData();
@@ -36,10 +61,8 @@ const AbsensiController = () => {
     const token = Cookies.get("authToken");
     setLoading(true);
     setError(null);
-    // console.log("token:", token);
 
     try {
-      // Build query parameters
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -86,6 +109,136 @@ const AbsensiController = () => {
     }
   };
 
+  useEffect(() => {
+    fetchStudentData();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
+
+      const response = await fetch("http://localhost:8080/api/attendances", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (response.ok) {
+        alert("Data absen santri berhasil ditambahkan!");
+        setForm({
+          date: "",
+          status: "",
+          studentId: 0,
+        });
+        setNewAbsensiModal(false);
+      } else {
+        alert("Gagal mengirim data");
+      }
+    } catch (err) {
+      console.error("Error saat mengirim data:", err);
+      alert("Terjadi kesalahan server");
+    }
+  };
+
+  const fetchStudentData = async () => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch("http://localhost:8080/api/students", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setTampIdStrudent(data.content);
+    } catch (error) {
+      console.error("Error fetching parent data:", error);
+      return [];
+    }
+  };
+
+  const handleShowEditModal = (absensi) => {
+    setSelectedAbsensiId(absensi.id);
+    setForm({
+      id: absensi.id || "",
+      date: absensi.date
+        ? new Date(absensi.date).toISOString().split("T")[0]
+        : "",
+      student_id: absensi.responseStudent.id,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(
+        `http://localhost:8080/api/attendances/${selectedAbsensiId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(form),
+        }
+      );
+
+      if (response.ok) {
+        alert("Data absensi berhasil diperbarui!");
+        setForm({
+          id: "",
+          date: "",
+          status: "",
+          student_id: 0,
+        });
+        setShowEditModal(false);
+        setSelectedAbsensiId(null);
+        fetchData();
+      } else {
+        const errorData = await response.json();
+        alert(
+          `Gagal memperbarui data: ${errorData.message || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      console.error("Error updating absesi:", error);
+      alert("Gagal memperbarui data santri");
+    }
+  };
+
+  const handleClick = async (id) => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(
+        `http://localhost:8080/api/attendances/${id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jsonData = await response.json();
+      setDetailInfoModal(jsonData);
+      setInfoModal(true);
+    } catch (error) {
+      console.error("Gagal mengambil detail data:", error);
+    }
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
@@ -110,6 +263,19 @@ const AbsensiController = () => {
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "DESC" ? "ASC" : "DESC"));
   };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const studentOptions = tampIdStrudent.map((student) => ({
+    value: student.id,
+    label: `${student.name} (ID: ${student.id})`,
+  }));
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
@@ -150,7 +316,10 @@ const AbsensiController = () => {
                 Kelola data kehadiran santri harian
               </p>
             </div>
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <button
+              onClick={() => setNewAbsensiModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               <span>Tambah Absensi</span>
             </button>
@@ -296,7 +465,6 @@ const AbsensiController = () => {
             )}
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -429,6 +597,7 @@ const AbsensiController = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
+                            onClick={() => handleShowEditModal(item)}
                             className="text-emerald-600 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-50"
                             title="Edit"
                           >
@@ -440,6 +609,13 @@ const AbsensiController = () => {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
+                          <button
+                            onClick={() => handleClick(item.id)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                            title="Delete"
+                          >
+                            <Info className="w-5 h-5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -449,7 +625,6 @@ const AbsensiController = () => {
             </div>
           )}
         </div>
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
@@ -504,7 +679,6 @@ const AbsensiController = () => {
             </div>
           </div>
         )}
-
         {/* Summary Stats */}
         {data.length > 0 && (
           <div className="mt-6 bg-emerald-50 rounded-lg p-4">
@@ -520,6 +694,399 @@ const AbsensiController = () => {
                   </span>
                 )}
               </span>
+            </div>
+          </div>
+        )}
+        {newAbsensiModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setNewAbsensiModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Modal Header */}
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Tambah Absensi
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="date"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Tanggal
+                    </label>
+                    <input
+                      type="date"
+                      id="date"
+                      name="date"
+                      value={form.date}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="status"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={form.status}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="">Pilih Status</option>
+                      <option value="HADIR">HADIR</option>
+                      <option value="IZIN">IZIN</option>
+                      <option value="ALFA">ALFA</option>
+                      <option value="SAKIT">SAKIT</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="studentId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Santri
+                    </label>
+                    <Select
+                      inputId="studentId"
+                      name="studentId"
+                      options={studentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          studentId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        studentOptions.find(
+                          (opt) => opt.value === form.studentId
+                        ) || null
+                      }
+                      placeholder="Pilih Santri..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => setNewAbsensiModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading} // Assuming you add a loading state
+                  >
+                    {loading ? "Memuat..." : "Tambah"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}{" "}
+        {showEditModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
+              {/* Tombol Tutup */}
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedAbsensiId(null);
+                  setForm({
+                    id: "",
+                    date: "",
+                    status: "",
+                    student_id: 0,
+                  });
+                }}
+                aria-label="Tutup Modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Judul */}
+              <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
+                Edit Absensi
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleEdit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={form.date}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  >
+                    <option value="">Pilih status</option>
+                    <option value="HADIR">HADIR</option>
+                    <option value="IZIN">IZIN</option>
+                    <option value="ALFA">ALFA</option>
+                    <option value="SAKIT">SAKIT</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="studentId"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Santri
+                  </label>
+                  <Select
+                    inputId="studentId"
+                    name="studentId"
+                    options={studentOptions}
+                    onChange={(selectedOption) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        studentId: selectedOption?.value || "",
+                      }))
+                    }
+                    value={
+                      studentOptions.find(
+                        (opt) => opt.value === form.studentId
+                      ) || null
+                    }
+                    placeholder="Pilih Santri..."
+                    isClearable
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+        {infoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
+                onClick={() => setInfoModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Header */}
+              <h2 className="text-3xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2">
+                <Users className="w-6 h-6" /> Detail Santri
+              </h2>
+
+              {/* Detail Santri */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
+                    <p className="font-semibold">{detailInfoModal.id || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <div className="flex flex-col">
+                    <label className="text-xs uppercase text-gray-400 mb-1">
+                      Gender
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <p className="px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
+                        {detailInfoModal.responseStudent?.gender === "L"
+                          ? "Laki-laki"
+                          : "Perempuan"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tgl Lahir
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.birthDate
+                        ? new Date(
+                            detailInfoModal.responseStudent.birthDate
+                          ).toLocaleDateString("id-ID")
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Baby className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Kelas
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.classLevel || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tanggal
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.date
+                        ? new Date(detailInfoModal.date).toLocaleDateString(
+                            "id-ID"
+                          )
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Info className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Status
+                    </label>
+                    <div className="flex flex-col">
+                      <p className="inline-block mt-1 px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
+                        {detailInfoModal.status || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Parent Info */}
+              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
+                <Users className="w-5 h-5" /> Orang Tua
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.id ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.name ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Email
+                    </label>
+                    <p className="font-semibold break-words">
+                      {detailInfoModal.responseStudent?.responeParent?.email ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      No HP
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.noHp ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 flex justify-end space-x-4">
+                <button
+                  className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                  onClick={() => setInfoModal(false)}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         )}

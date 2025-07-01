@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
-import Select from 'react-select';
+import Select from "react-select";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
 import {
@@ -36,6 +35,7 @@ const SantriController = () => {
   const [tampIdParent, setTampIdParent] = useState([]);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -171,7 +171,6 @@ const SantriController = () => {
       console.error("Error fetching parent data:", error);
       return [];
     }
-
   };
 
   useEffect(() => {
@@ -378,10 +377,11 @@ const SantriController = () => {
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center space-x-2 px-3 py-2 border rounded-lg transition-colors ${showFilters
-                  ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                  : "border-gray-300 hover:bg-gray-50"
-                  }`}
+                className={`flex items-center space-x-2 px-3 py-2 border rounded-lg transition-colors ${
+                  showFilters
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                    : "border-gray-300 hover:bg-gray-50"
+                }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Filter</span>
@@ -568,18 +568,19 @@ const SantriController = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.gender === "L" || item.gender === "L"
-                            ? "bg-blue-100 text-blue-800"
-                            : item.gender === "P" || item.gender === "P"
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.gender === "L" || item.gender === "L"
+                              ? "bg-blue-100 text-blue-800"
+                              : item.gender === "P" || item.gender === "P"
                               ? "bg-pink-100 text-pink-800"
                               : "bg-gray-100 text-gray-800"
-                            }`}
+                          }`}
                         >
                           {item.gender === "L"
                             ? "L"
                             : item.gender === "P"
-                              ? "P"
-                              : item.gender || "-"}
+                            ? "P"
+                            : item.gender || "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
@@ -655,10 +656,11 @@ const SantriController = () => {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === pageNum
-                      ? "bg-emerald-600 text-white"
-                      : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                      }`}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === pageNum
+                        ? "bg-emerald-600 text-white"
+                        : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -809,9 +811,16 @@ const SantriController = () => {
                       name="parentId"
                       options={parentOptions}
                       onChange={(selectedOption) =>
-                        setForm((prev) => ({ ...prev, parentId: selectedOption?.value || "" }))
+                        setForm((prev) => ({
+                          ...prev,
+                          parentId: selectedOption?.value || "",
+                        }))
                       }
-                      value={parentOptions.find((opt) => opt.value === form.parentId) || null}
+                      value={
+                        parentOptions.find(
+                          (opt) => opt.value === form.parentId
+                        ) || null
+                      }
                       placeholder="Pilih Orang Tua..."
                       isClearable
                       className="react-select-container"
@@ -950,7 +959,6 @@ const SantriController = () => {
         {infoModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
             <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
-
               {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
@@ -970,38 +978,58 @@ const SantriController = () => {
                 <div className="flex items-start gap-3">
                   <Hash className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">ID</label>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
                     <p className="font-semibold">{detailInfoModal.id || "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Nama</label>
-                    <p className="font-semibold">{detailInfoModal.name || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.name || "-"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <BadgeInfo className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Gender</label>
-                    <p className="inline-block mt-1 px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
-                      {detailInfoModal.gender === "L" ? "Laki-laki" : "Perempuan"}
-                    </p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Gender
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <p className="px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
+                        {detailInfoModal.gender === "L"
+                          ? "Laki-laki"
+                          : "Perempuan"}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Calendar className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Tgl Lahir</label>
-                    <p className="font-semibold">{detailInfoModal.birthDate || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tgl Lahir
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.birthDate || "-"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Baby className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Kelas</label>
-                    <p className="font-semibold">{detailInfoModal.classLevel || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Kelas
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.classLevel || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1014,29 +1042,45 @@ const SantriController = () => {
                 <div className="flex items-start gap-3">
                   <Hash className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">ID</label>
-                    <p className="font-semibold">{detailInfoModal.responeParent?.id || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responeParent?.id || "-"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Nama</label>
-                    <p className="font-semibold">{detailInfoModal.responeParent?.name || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responeParent?.name || "-"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Email</label>
-                    <p className="font-semibold break-words">{detailInfoModal.responeParent?.email || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      Email
+                    </label>
+                    <p className="font-semibold break-words">
+                      {detailInfoModal.responeParent?.email || "-"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Phone className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">No HP</label>
-                    <p className="font-semibold">{detailInfoModal.responeParent?.noHp || "-"}</p>
+                    <label className="text-xs uppercase text-gray-400">
+                      No HP
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responeParent?.noHp || "-"}
+                    </p>
                   </div>
                 </div>
               </div>
