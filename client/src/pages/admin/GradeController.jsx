@@ -1,8 +1,27 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
-import { Search, Filter, SortAsc, SortDesc, RefreshCw, Users, Info, Trash2, Edit } from "lucide-react";
+import {
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  RefreshCw,
+  Users,
+  Info,
+  Trash2,
+  Edit,
+  Plus,
+  X,
+  Phone,
+  Mail,
+  User,
+  Hash,
+  Baby,
+  Calendar,
+  BadgeInfo,
+} from "lucide-react";
+import Select from "react-select";
 
 const GradeController = () => {
   const [dataGrades, setDataGrades] = useState([]);
@@ -15,10 +34,21 @@ const GradeController = () => {
   const [pageSize, setPageSize] = useState(10);
   const [sortOrder, setSortOrder] = useState("DESC");
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-  }, [currentPage, pageSize, sortOrder, searchQuery]);
+  const [newGradeModal, setNewGradeModal] = useState(false);
+  const [infoModal, setInfoModal] = useState(false);
+  const [detailInfoModal, setDetailInfoModal] = useState({});
+  const [students, setStudents] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedGradeId, setSelectedGradeId] = useState(null);
+  const [form, setForm] = useState({
+    semester: "",
+    score: "",
+    academicYear: "",
+    studentId: "",
+    subjectId: "",
+  });
+  const [formError, setFormError] = useState(null);
 
   const fetchData = async () => {
     const token = Cookies.get("authToken");
@@ -26,6 +56,7 @@ const GradeController = () => {
     setError(null);
 
     try {
+      // Fetch grades
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -36,7 +67,7 @@ const GradeController = () => {
         params.append("query", searchQuery.trim());
       }
 
-      const response = await fetch(
+      const gradesResponse = await fetch(
         `http://localhost:8080/api/grades?${params}`,
         {
           method: "GET",
@@ -46,19 +77,236 @@ const GradeController = () => {
           },
         }
       );
+      if (!gradesResponse.ok) {
+        throw new Error(`HTTP error! status: ${gradesResponse.status}`);
+      }
+
+      const gradesData = await gradesResponse.json();
+      setDataGrades(gradesData.content || []);
+      setTotalPages(gradesData.totalPages || 0);
+      setTotalElements(gradesData.totalElements || 0);
+
+      // Fetch students
+      const studentsResponse = await fetch(
+        "http://localhost:8080/api/students",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!studentsResponse.ok) {
+        throw new Error(`HTTP error! status: ${studentsResponse.status}`);
+      }
+      const studentsData = await studentsResponse.json();
+      setStudents(studentsData.content || []);
+
+      // Fetch subjects
+      const subjectsResponse = await fetch(
+        "http://localhost:8080/api/subjects",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!subjectsResponse.ok) {
+        throw new Error(`HTTP error! status: ${subjectsResponse.status}`);
+      }
+      const subjectsData = await subjectsResponse.json();
+      setSubjects(subjectsData.content || []);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      setError("Gagal mengambil data. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [currentPage, pageSize, sortOrder, searchQuery]);
+
+  const studentOptions = students.map((student) => ({
+    value: student.id,
+    label: `${student.name} (ID: ${student.id})`,
+  }));
+
+  const subjectOptions = subjects.map((subject) => ({
+    value: subject.id,
+    label: `${subject.name}`,
+  }));
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setFormError(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !form.semester ||
+      !form.score ||
+      !form.academicYear ||
+      !form.studentId ||
+      !form.subjectId
+    ) {
+      setFormError("Semua field wajib diisi");
+      return;
+    }
+
+    if (isNaN(form.score) || form.score < 0 || form.score > 100) {
+      setFormError("Nilai harus antara 0 dan 100");
+      return;
+    }
+
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch("http://localhost:8080/api/grades", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          semester: form.semester,
+          score: Number(form.score),
+          academicYear: form.academicYear,
+          studentId: Number(form.studentId),
+          subjectId: Number(form.subjectId),
+        }),
+      });
+
+      if (response.ok) {
+        alert("Berhasil menambah grade");
+        setForm({
+          semester: "",
+          score: "",
+          academicYear: "",
+          studentId: "",
+          subjectId: "",
+        });
+        setNewGradeModal(false);
+        fetchData();
+      } else {
+        const errorData = await response.json();
+        setFormError(errorData.message || "Gagal menambah grade");
+      }
+    } catch (error) {
+      console.error("Error saat mengirim data:", error);
+      setFormError("Terjadi kesalahan server");
+    }
+  };
+
+  const handleClick = async (id) => {
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(`http://localhost:8080/api/grades/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const jsonData = await response.json();
-      setDataGrades(jsonData.content || []);
-      setTotalPages(jsonData.totalPages || 0);
-      setTotalElements(jsonData.totalElements || 0);
+      setDetailInfoModal(jsonData);
+      setInfoModal(true);
     } catch (error) {
-      console.error("Gagal mengambil data nilai:", error);
-      setError("Gagal mengambil data nilai santri");
-    } finally {
-      setLoading(false);
+      console.error("Gagal mengambil detail data:", error);
+      setError("Gagal mengambil detail grade. Silakan coba lagi.");
+    }
+  };
+
+  const handleShowEditModal = (grade) => {
+    setSelectedGradeId(grade.id);
+    setForm({
+      semester: grade.semester || "",
+      score: grade.score ? grade.score : "",
+      academicYear: grade.academicYear || "",
+      studentId: grade.responseStudent?.id
+        ? grade.responseStudent.id
+        : "",
+      subjectId: grade.responseSubject?.id
+        ? grade.responseSubject.id
+        : "",
+    });
+    setFormError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !form.semester ||
+      !form.score ||
+      !form.academicYear ||
+      !form.studentId ||
+      !form.subjectId
+    ) {
+      setFormError("Semua field wajib diisi");
+      return;
+    }
+
+    if (isNaN(form.score) || form.score < 0 || form.score > 100) {
+      setFormError("Nilai harus antara 0 dan 100");
+      return;
+    }
+
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(
+        `http://localhost:8080/api/grades/${selectedGradeId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            semester: form.semester,
+            score: Number(form.score),
+            academicYear: form.academicYear,
+            studentId: Number(form.studentId),
+            subjectId: Number(form.subjectId),
+          }),
+        }
+      );
+
+      if (response.ok) {
+        alert("Berhasil memperbarui grade");
+        setForm({
+          semester: "",
+          score: "",
+          academicYear: "",
+          studentId: "",
+          subjectId: "",
+        });
+        setShowEditModal(false);
+        setSelectedGradeId(null);
+        setFormError(null);
+        fetchData();
+      } else {
+        const errorData = await response.json();
+        setFormError(errorData.message || "Gagal memperbarui grade");
+      }
+    } catch (error) {
+      console.error("Error updating grade:", error);
+      setFormError("Terjadi kesalahan server");
     }
   };
 
@@ -100,6 +348,13 @@ const GradeController = () => {
                 Kelola data nilai santri pesantren
               </p>
             </div>
+            <button
+              onClick={() => setNewGradeModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Grade</span>
+            </button>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
@@ -240,13 +495,16 @@ const GradeController = () => {
                       Nama Santri
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subject
+                      Mata Pelajaran
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nilai
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Semester
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tahun Ajaran
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Orang Tua
@@ -290,7 +548,7 @@ const GradeController = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.responseSubject.name || "-"}
+                        {item.responseSubject?.name || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.score ? item.score.toFixed(1) : "-"}
@@ -299,25 +557,22 @@ const GradeController = () => {
                         {item.semester || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                        {item.academicYear || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.responseStudent?.responeParent?.name || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
-                            // onClick={() => handleShowEditModal(item)}
+                            onClick={() => handleShowEditModal(item)}
                             className="text-emerald-600 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-50"
                             title="Edit"
                           >
                             <Edit className="w-5 h-5" />
                           </button>
                           <button
-                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                          <button
-                            // onClick={() => handleClick(item.id)}
+                            onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
                             title="Detail"
                           >
@@ -400,6 +655,557 @@ const GradeController = () => {
                   </span>
                 )}
               </span>
+            </div>
+          </div>
+        )}
+
+        {newGradeModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 scale-100">
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setNewGradeModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Tambah Nilai
+              </h2>
+              <form onSubmit={handleSubmit}>
+                {formError && (
+                  <div className="mb-4 text-red-600 text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="studentId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Santri
+                    </label>
+                    <Select
+                      inputId="studentId"
+                      name="studentId"
+                      options={studentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          studentId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        studentOptions.find(
+                          (opt) => opt.value === form.studentId
+                        ) || null
+                      }
+                      placeholder="Pilih Santri..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="subjectId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Mata Pelajaran
+                    </label>
+                    <Select
+                      inputId="subjectId"
+                      name="subjectId"
+                      options={subjectOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          subjectId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        subjectOptions.find(
+                          (opt) => opt.value === form.subjectId
+                        ) || null
+                      }
+                      placeholder="Pilih Mata Pelajaran..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="semester"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Semester
+                    </label>
+                    <select
+                      id="semester"
+                      name="semester"
+                      value={form.semester}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Semester
+                      </option>
+                      <option value="Ganjil">Ganjil</option>
+                      <option value="Genap">Genap</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="score"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Nilai
+                    </label>
+                    <input
+                      type="number"
+                      id="score"
+                      name="score"
+                      value={form.score}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      placeholder="Masukkan nilai (0-100)"
+                      min="0"
+                      max="100"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="academicYear"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tahun Ajaran
+                    </label>
+                    <input
+                      type="text"
+                      id="academicYear"
+                      name="academicYear"
+                      value={form.academicYear}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      placeholder="Contoh: 2023/2024"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => setNewGradeModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  >
+                    {loading ? "Memuat..." : "Tambah"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showEditModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="edit-modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 scale-100">
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setShowEditModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h2
+                id="edit-modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Edit Nilai
+              </h2>
+              <form onSubmit={handleEdit}>
+                {formError && (
+                  <div className="mb-4 text-red-600 text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="studentId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Santri
+                    </label>
+                    <Select
+                      inputId="studentId"
+                      name="studentId"
+                      options={studentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          studentId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        studentOptions.find(
+                          (opt) => opt.value === form.studentId
+                        ) || null
+                      }
+                      placeholder="Pilih Santri..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="subjectId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Mata Pelajaran
+                    </label>
+                    <Select
+                      inputId="subjectId"
+                      name="subjectId"
+                      options={subjectOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          subjectId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        subjectOptions.find(
+                          (opt) => opt.value === form.subjectId
+                        ) || null
+                      }
+                      placeholder="Pilih Mata Pelajaran..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="semester"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Semester
+                    </label>
+                    <select
+                      id="semester"
+                      name="semester"
+                      value={form.semester}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Semester
+                      </option>
+                      <option value="Ganjil">Ganjil</option>
+                      <option value="Genap">Genap</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="score"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Nilai
+                    </label>
+                    <input
+                      type="number"
+                      id="score"
+                      name="score"
+                      value={form.score}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      placeholder="Masukkan nilai (0-100)"
+                      min="0"
+                      max="100"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="academicYear"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tahun Ajaran
+                    </label>
+                    <input
+                      type="text"
+                      id="academicYear"
+                      name="academicYear"
+                      value={form.academicYear}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      placeholder="Contoh: 2023/2024"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  >
+                    {loading ? "Memuat..." : "Simpan"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {infoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
+                onClick={() => setInfoModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h2 className="text-3xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2">
+                <Users className="w-6 h-6" /> Detail Nilai
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
+                    <p className="font-semibold">{detailInfoModal.id || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama Santri
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Mata Pelajaran
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseSubject?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nilai
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.score
+                        ? detailInfoModal.score.toFixed(1)
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Baby className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Semester
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.semester || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tahun Ajaran
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.academicYear || "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
+                <Users className="w-5 h-5" /> Informasi Santri
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID Santri
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.id || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Gender
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <p className="px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
+                        {detailInfoModal.responseStudent?.gender === "L"
+                          ? "Laki-laki"
+                          : detailInfoModal.responseStudent?.gender === "P"
+                          ? "Perempuan"
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tgl Lahir
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.birthDate || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Baby className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Kelas
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.classLevel || "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
+                <Users className="w-5 h-5" /> Orang Tua
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <Hash className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      ID
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.id ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.name ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Email
+                    </label>
+                    <p className="font-semibold break-words">
+                      {detailInfoModal.responseStudent?.responeParent?.email ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      No HP
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.noHp ||
+                        "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end space-x-4">
+                <button
+                  className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                  onClick={() => setInfoModal(false)}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         )}

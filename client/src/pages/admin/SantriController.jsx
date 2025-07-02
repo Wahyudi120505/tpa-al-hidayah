@@ -600,13 +600,6 @@ const SantriController = () => {
                             <Edit className="w-5 h-5" />
                           </button>
                           <button
-                            // onClick={() => handleDelete(item.id)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                          <button
                             onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
                             title="Delete"
