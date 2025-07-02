@@ -44,6 +44,7 @@ public class GradeServiceImpl implements GradeService {
             .score(request.score())
             .semester(request.semester())
             .student(student)
+            .academicYear(request.academicYear())
             .subject(subject) 
             .build();
         return gradeRepository.save(grade);

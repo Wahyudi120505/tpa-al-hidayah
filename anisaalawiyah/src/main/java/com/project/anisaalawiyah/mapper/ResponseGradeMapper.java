@@ -21,6 +21,7 @@ public class ResponseGradeMapper extends ADATAMapper<Grade, ResponseGrade> {
                 .id(grade.getId())
                 .semester(grade.getSemester())
                 .score(grade.getScore())
+                .academicYear(grade.getAcademicYear())
                 .responseStudent(responseStudentMapper.convert(grade.getStudent())) 
                 .responseSubject(responseSubjectMapper.convert(grade.getSubject()))
                 .build();
