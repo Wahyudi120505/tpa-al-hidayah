@@ -11,10 +11,11 @@ const HafalanStudent = () => {
     const [selectedHafalan, setSelectedHafalan] = useState(null); // State for selected hafalan
     const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
     console.log(JSON.parse(localStorage.getItem("user")));
+    console.log(dataHafalan);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const parent = user?.responseStudent?.responeParent;
+        const parent = user?.responseStudent?.[0].responeParent;
     
         if (parent?.id) {
             setParentId(parent.id);

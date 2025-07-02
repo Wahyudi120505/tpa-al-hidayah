@@ -12,9 +12,10 @@ const GradeStudent = () => {
 
   console.log(JSON.parse(localStorage.getItem("user")));
   console.log(dataGrades)
+  
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const parent = user?.responseStudent?.responeParent;
+    const parent = user?.responseStudent?.[0].responeParent;
 
     if (parent?.id) {
       setParentId(parent.id);
@@ -164,7 +165,7 @@ const GradeStudent = () => {
               <p className="text-gray-700 flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-indigo-500" />
                 <span className="font-medium">Subject:</span>{" "}
-                {selectedGrade?.name}
+                {selectedGrade?.responseSubject?.name}
               </p>
               <p className="text-gray-700 flex items-center gap-2">
                 <User className="w-5 h-5 text-indigo-500" />

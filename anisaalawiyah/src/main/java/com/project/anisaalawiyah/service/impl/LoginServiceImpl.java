@@ -1,6 +1,8 @@
 package com.project.anisaalawiyah.service.impl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -45,28 +47,34 @@ public class LoginServiceImpl implements LoginService {
 
     @Override
     public ResponLogin login(RequestLogin loginRequestDto) {
-
         System.out.println("Attempting to login with email: " + loginRequestDto.getEmail());
 
         try {
+            // Ambil user berdasarkan email
             User user = registerRepository
                     .findByEmail(loginRequestDto.getEmail())
                     .orElse(null);
 
             if (user == null) {
                 System.out.println("User not found for email: " + loginRequestDto.getEmail());
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Invalid username or password");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or password");
             }
 
-            boolean isMatch = passwordEncoder.matches(loginRequestDto.getPassword(),
-                    user.getPassword());
+            // Verifikasi password
+            boolean isMatch = passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword());
 
             if (!isMatch) {
                 System.out.println("Password does not match for email: " + loginRequestDto.getEmail());
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or password");
             }
 
+            // Inisialisasi response
+            ResponLogin loginResponseDto = new ResponLogin();
+            loginResponseDto.setEmail(user.getEmail());
+            loginResponseDto.setToken(jwtUtil.generateToken(user));
+            loginResponseDto.setRole(user.getRole().name());
+
+            // Jika role PARENT, kirim data siswa-siswanya
             if (user.getRole() == ERole.PARENT) {
                 if (user.getParent() == null) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent not found");
@@ -75,42 +83,32 @@ public class LoginServiceImpl implements LoginService {
                 Parent parent = parentRepository.findById(user.getParent().getId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent not found"));
 
-                List<Student> students = parent.getStudents(); // asumsi ada relasi OneToMany
-                if (students == null || students.isEmpty()) {
-                    ResponLogin loginResponseDto = new ResponLogin();
-                    loginResponseDto.setEmail(user.getEmail());
-                    loginResponseDto.setToken(jwtUtil.generateToken(user));
-                    loginResponseDto.setRole(user.getRole().name());
-                    loginResponseDto.setResponseStudent(null); // atau bisa isi responseParent saja
-                    return loginResponseDto;
+                List<Student> students = parent.getStudents(); // Relasi OneToMany
+
+                if (students != null && !students.isEmpty()) {
+                    List<ResponseStudent> responseStudents = students.stream().map(student -> ResponseStudent.builder()
+                            .id(student.getId())
+                            .name(student.getName())
+                            .gender(student.getGender())
+                            .birthDate(student.getBirthDate())
+                            .classLevel(student.getClassLevel())
+                            .responeParent(ResponseParent.builder()
+                                    .id(parent.getId())
+                                    .email(parent.getEmail())
+                                    .name(parent.getName())
+                                    .noHp(parent.getNoHp())
+                                    .build())
+                            .build()).collect(Collectors.toList());
+
+                    loginResponseDto.setResponseStudent(responseStudents);
+                } else {
+                    loginResponseDto.setResponseStudent(new ArrayList<>()); // Kosong jika tidak ada siswa
                 }
 
-                Student student = students.get(0); // atau loop semua jika perlu
-
-                ResponLogin loginResponseDto = new ResponLogin();
-                loginResponseDto.setEmail(user.getEmail());
-                loginResponseDto.setToken(jwtUtil.generateToken(user));
-                loginResponseDto.setRole(user.getRole().name());
-                loginResponseDto.setResponseStudent(ResponseStudent.builder()
-                        .id(student.getId())
-                        .name(student.getName())
-                        .gender(student.getGender())
-                        .birthDate(student.getBirthDate())
-                        .classLevel(student.getClassLevel())
-                        .responeParent(ResponseParent.builder()
-                                .id(parent.getId())
-                                .email(parent.getEmail())
-                                .name(parent.getName())
-                                .noHp(parent.getNoHp())
-                                .build())
-                        .build());
                 return loginResponseDto;
             } else {
-                // Ini penting: untuk role selain PARENT
-                ResponLogin loginResponseDto = new ResponLogin();
-                loginResponseDto.setEmail(user.getEmail());
-                loginResponseDto.setToken(jwtUtil.generateToken(user));
-                loginResponseDto.setRole(user.getRole().name());
+                // Untuk role selain parent (misalnya ADMIN atau TEACHER)
+                loginResponseDto.setResponseStudent(null);
                 return loginResponseDto;
             }
 

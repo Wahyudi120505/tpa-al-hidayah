@@ -1,6 +1,8 @@
 package com.project.anisaalawiyah.dto.response;
 
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +16,6 @@ public class ResponLogin {
     private String email;
     private String token;
     private String role;
-    private ResponseStudent responseStudent;
+    private List<ResponseStudent> responseStudent;
     
 }
