@@ -229,6 +229,34 @@ const ParentController = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    const konfirmasi = window.confirm(
+      "Menghapus data orang tua ini juga akan menghapus semua data yang terkait. Apakah Anda yakin ingin melanjutkan?"
+    );
+    if (!konfirmasi) return;
+
+    try {
+      const token = Cookies.get("authToken");
+      const response = await fetch(`http://localhost:8080/api/parents/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        alert("Data berhasil dihapus.");
+        fetchData();
+      } else {
+        alert("Gagal menghapus data. Silakan coba lagi.");
+      }
+    } catch (error) {
+      console.error("Terjadi kesalahan saat menghapus data:", error);
+      alert("Terjadi kesalahan pada server.");
+    }
+  };
+
   return (
     <>
       <Sidebar menuActive={"parent"} />
@@ -430,6 +458,13 @@ const ParentController = () => {
                             title="Edit"
                           >
                             <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleClick(item.id)}

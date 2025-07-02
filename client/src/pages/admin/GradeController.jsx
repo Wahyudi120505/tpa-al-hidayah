@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
@@ -237,12 +238,8 @@ const GradeController = () => {
       semester: grade.semester || "",
       score: grade.score ? grade.score : "",
       academicYear: grade.academicYear || "",
-      studentId: grade.responseStudent?.id
-        ? grade.responseStudent.id
-        : "",
-      subjectId: grade.responseSubject?.id
-        ? grade.responseSubject.id
-        : "",
+      studentId: grade.responseStudent?.id ? grade.responseStudent.id : "",
+      subjectId: grade.responseSubject?.id ? grade.responseSubject.id : "",
     });
     setFormError(null);
     setShowEditModal(true);
@@ -1076,128 +1073,6 @@ const GradeController = () => {
                   </div>
                 </div>
               </div>
-
-              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
-                <Users className="w-5 h-5" /> Informasi Santri
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <Hash className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID Santri
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.id || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <User className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Nama
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.name || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <BadgeInfo className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Gender
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <p className="px-2 py-1 rounded-full text-white text-xs font-medium bg-gradient-to-r from-emerald-500 to-green-500">
-                        {detailInfoModal.responseStudent?.gender === "L"
-                          ? "Laki-laki"
-                          : detailInfoModal.responseStudent?.gender === "P"
-                          ? "Perempuan"
-                          : "-"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Calendar className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Tgl Lahir
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.birthDate || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Baby className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Kelas
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.classLevel || "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
-                <Users className="w-5 h-5" /> Orang Tua
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <Hash className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.responeParent?.id ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <User className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Nama
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.responeParent?.name ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Email
-                    </label>
-                    <p className="font-semibold break-words">
-                      {detailInfoModal.responseStudent?.responeParent?.email ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      No HP
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.responeParent?.noHp ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="mt-8 flex justify-end space-x-4">
                 <button
                   className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
