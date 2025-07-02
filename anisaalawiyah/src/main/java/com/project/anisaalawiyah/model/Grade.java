@@ -26,7 +26,6 @@ public class Grade extends ASoftDeletable {
 
     private String semester;
     private Double score;
-    private String name;
     private String academicYear;
 
     @ManyToOne

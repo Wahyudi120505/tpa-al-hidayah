@@ -14,4 +14,6 @@ public record RequestFindAllStudentMemorizationStatus(
         LocalDate endUpdatedAt,
         EMemorizationStatus status
 ) {
+
+       
 }

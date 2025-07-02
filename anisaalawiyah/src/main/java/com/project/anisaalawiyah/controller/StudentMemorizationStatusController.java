@@ -37,14 +37,14 @@ public class StudentMemorizationStatusController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "ASC") ESortOrderBy sortOrder,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "ASC") String sortOrder,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startUpdatedAt,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endUpdatedAt
     ) {
         try {
             RequestFindAllStudentMemorizationStatus request = new RequestFindAllStudentMemorizationStatus(
-                    page, size, query, ESortOrderBy.valueOf(sortOrder.toUpperCase()), sortBy, startUpdatedAt, endUpdatedAt, null
+                    page, size, query, sortOrder,  sortBy, startUpdatedAt, endUpdatedAt, null
             );
 
             Page<StudentMemorizationStatus> result = studentMemorizationStatusService.getAll(request);

@@ -40,7 +40,7 @@ public class GradeServiceImpl implements GradeService {
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
 
       Grade grade = Grade.builder()
-            .name(request.name())
+
             .score(request.score())
             .semester(request.semester())
             .student(student)
@@ -53,8 +53,6 @@ public class GradeServiceImpl implements GradeService {
     public Grade update(Long id, RequestGrade request) throws ServiceException {
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Grade not found"));
-
-        grade.setName(request.name());
         grade.setScore(request.score());
         grade.setSemester(request.semester());
 
@@ -90,7 +88,7 @@ public class GradeServiceImpl implements GradeService {
             : cb.or(
                 cb.like(cb.lower(root.get("semester")), "%" + query.toLowerCase() + "%"),
                 cb.like(cb.lower(root.get("score").as(String.class)), "%" + query.toLowerCase() + "%"),
-                cb.like(cb.lower(root.get("name")), "%" + query.toLowerCase() + "%")
+                cb.like(cb.lower(root.get("student").get("name")), "%" + query.toLowerCase() + "%")
             );
     }
 

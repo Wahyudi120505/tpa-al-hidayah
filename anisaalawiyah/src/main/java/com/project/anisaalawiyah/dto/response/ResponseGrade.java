@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 public class ResponseGrade{
     private Long id;
-    private String name;
     private Double score;
     private String semester;
     private String academicYear;
     private ResponseStudent responseStudent;
-    private Long subjectId;
+
+    private ResponseSubject responseSubject;
 
    }

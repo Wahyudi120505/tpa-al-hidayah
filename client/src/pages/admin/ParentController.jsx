@@ -165,11 +165,11 @@ const ParentController = () => {
           name: "",
           email: "",
           noHp: "",
-          password: ""
+          password: "",
         });
         setShowEditModal(false);
         setSelectedParentId(null);
-        fetchData(); 
+        fetchData();
       } else {
         const errorData = await response.json();
         alert(
@@ -538,7 +538,7 @@ const ParentController = () => {
                 }}
                 aria-label="Tutup Modal"
               >
-                <X className="w-6 h-6"/>
+                <X className="w-6 h-6" />
               </button>
 
               {/* Judul */}
@@ -607,8 +607,9 @@ const ParentController = () => {
                 <button
                   type="submit"
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                  disabled={loading}
                 >
-                  Simpan Perubahan
+                  {loading ? "Memuat..." : "Simpan Perubahan"}
                 </button>
               </form>
             </div>
@@ -797,7 +798,7 @@ const ParentController = () => {
                   <button
                     type="submit"
                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
-                    disabled={loading} // Assuming you add a loading state
+                    disabled={loading}
                   >
                     {loading ? "Memuat..." : "Tambah"}
                   </button>

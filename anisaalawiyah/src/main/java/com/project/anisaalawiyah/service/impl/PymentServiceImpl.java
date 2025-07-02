@@ -83,10 +83,10 @@ public class PymentServiceImpl implements PymentService {
         return (root, q, cb) -> Strings.isBlank(query)
             ? null
             : cb.or(
-                cb.like(cb.lower(root.get("student").get("name")), "%" + query.toLowerCase() + "%"),
-                cb.like(cb.lower(root.get("status")), "%" + query.toLowerCase() + "%")
+                cb.like(cb.lower(root.get("student").get("name")), "%" + query.toLowerCase() + "%")
             );
     }
+
 
     private static Specification<Pyment> withPaymentDateRange(LocalDate start, LocalDate end) {
         return (root, q, cb) -> {

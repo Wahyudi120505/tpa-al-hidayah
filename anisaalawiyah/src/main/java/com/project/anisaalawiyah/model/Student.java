@@ -38,14 +38,20 @@ public class Student extends ASoftDeletable {
     private LocalDate birthDate;
     private String classLevel;
     
-    @ManyToOne(cascade = CascadeType.REMOVE)
+    @ManyToOne
     @JoinColumn(name = "parent_id")
 
     private Parent parent;
     
-    @OneToMany(mappedBy = "student")
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Grade> grades;
-    
-    @OneToMany(mappedBy = "student")
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attendance> attendances;
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Pyment> pyments;
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentMemorizationStatus> memorizationStatuses;
 }

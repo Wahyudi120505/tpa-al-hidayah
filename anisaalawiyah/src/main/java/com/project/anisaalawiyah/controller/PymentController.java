@@ -106,12 +106,13 @@ public class PymentController {
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String query,
             @RequestParam(defaultValue = "ASC") ESortOrderBy sortOrder,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) EPymentStatus status
     ) {
         try {
-            RequestFindAllPyment request = new RequestFindAllPyment(page, size, query, sortOrder,query, startDate, endDate, status);
+            RequestFindAllPyment request = new RequestFindAllPyment(page, size, query, sortOrder,sortBy, startDate, endDate, status);
             Page<Pyment> result = pymentService.getAll(request);
             Page<ResponsePyment> response = result.map(responsePymentMapper::convert);
             return ResponseEntity.ok(response);

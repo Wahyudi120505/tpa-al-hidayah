@@ -859,7 +859,7 @@ const StudentMemorizationController = () => {
                 }}
                 aria-label="Tutup Modal"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
 
               {/* Judul */}
@@ -953,19 +953,19 @@ const StudentMemorizationController = () => {
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-3">
-                  <button
+                  {/* <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                     onClick={() => setShowEditModal(false)}
                   >
                     Batal
-                  </button>
+                  </button> */}
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
                     disabled={loading}
                   >
-                    {loading ? "Memuat..." : "Tambah"}
+                    {loading ? "Memuat..." : "Simpan Perubahan"}
                   </button>
                 </div>
               </form>

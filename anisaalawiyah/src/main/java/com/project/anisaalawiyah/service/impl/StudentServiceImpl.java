@@ -47,14 +47,12 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ServiceException(id + "not found i"));
 
-        Parent parent = parentRepository.findById(student.getParent().getId())
-                .orElseThrow(() -> new ServiceException("id parent not found"));
-
+        
         student.setName(requestStudent.name());
         student.setBirthDate(requestStudent.birthDate());
         student.setClassLevel(requestStudent.classLevel());
         student.setGender(requestStudent.gender());
-        student.setParent(parent);
+      
 
         return studentRepository.save(student);
     }

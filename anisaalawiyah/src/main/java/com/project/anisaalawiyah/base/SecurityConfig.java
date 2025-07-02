@@ -58,7 +58,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             ).permitAll()
 
             // Hanya untuk PARENT (lihat dan unduh laporan)
-            .requestMatchers("/report/**", "/files/**", "/api/student-memorization-status/**", "/api/grades").hasAnyRole("PARENT", "ADMIN")
+            .requestMatchers("/report/**", "/files/**").hasAnyRole("PARENT", "ADMIN")
 
             // Hanya ADMIN bisa akses semua endpoint /api/**
             .requestMatchers("/api/**").hasRole("ADMIN")

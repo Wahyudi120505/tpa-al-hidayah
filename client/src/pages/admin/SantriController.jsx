@@ -172,8 +172,8 @@ const SantriController = () => {
       );
 
       const meta = await resMeta.json();
-      const total = meta.totalElements || 1000; 
-      
+      const total = meta.totalElements || 1000;
+
       const response = await fetch(
         `http://localhost:8080/api/parents?page=1&size=${total}&sortOrder=ASC`,
         {
@@ -442,8 +442,8 @@ const SantriController = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     >
                       <option value="">Semua Gender</option>
-                      <option value="L">L</option>
-                      <option value="P">P</option>
+                      <option value="L">Laki-Laki</option>
+                      <option value="P">Perempuan</option>
                     </select>
                   </div>
 
@@ -574,9 +574,9 @@ const SantriController = () => {
                           }`}
                         >
                           {item.gender === "L"
-                            ? "L"
+                            ? "Laki-Laki"
                             : item.gender === "P"
-                            ? "P"
+                            ? "Perempuan"
                             : item.gender || "-"}
                         </span>
                       </td>
@@ -752,8 +752,8 @@ const SantriController = () => {
                       required
                     >
                       <option value="">Pilih Gender</option>
-                      <option value="L">L</option>
-                      <option value="P">P</option>
+                      <option value="L">Laki-Laki</option>
+                      <option value="P">Perempuan</option>
                     </select>
                   </div>
                   <div>
@@ -838,7 +838,7 @@ const SantriController = () => {
                   <button
                     type="submit"
                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
-                    disabled={loading} // Assuming you add a loading state
+                    disabled={loading}
                   >
                     {loading ? "Memuat..." : "Tambah"}
                   </button>
@@ -867,7 +867,7 @@ const SantriController = () => {
                 }}
                 aria-label="Tutup Modal"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
 
               {/* Judul */}
@@ -946,8 +946,9 @@ const SantriController = () => {
                 <button
                   type="submit"
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                  disabled={loading}
                 >
-                  Simpan Perubahan
+                  {loading ? "Memuat..." : "Simpan Perubahan"}
                 </button>
               </form>
             </div>

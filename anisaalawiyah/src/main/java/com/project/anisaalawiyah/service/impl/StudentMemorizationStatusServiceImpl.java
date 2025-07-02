@@ -89,7 +89,6 @@ public class StudentMemorizationStatusServiceImpl implements StudentMemorization
         return (root, q, cb) -> Strings.isBlank(query)
             ? null
             : cb.or(
-                cb.like(cb.lower(root.get("status")), "%" + query.toLowerCase() + "%"),
                 cb.like(cb.lower(root.get("student").get("name")), "%" + query.toLowerCase() + "%"),
                 cb.like(cb.lower(root.get("surah").get("name")), "%" + query.toLowerCase() + "%")
             );
@@ -106,10 +105,10 @@ public class StudentMemorizationStatusServiceImpl implements StudentMemorization
 
     @Override
     public Page<StudentMemorizationStatus> getAll(RequestFindAllStudentMemorizationStatus request)throws ServiceException  {
-       Sort sort = Sort.by(
-        request.sortOrder() == com.project.anisaalawiyah.enums.ESortOrderBy.ASC ? Sort.Direction.ASC : Sort.Direction.DESC,
-        request.sortBy() != null ? request.sortBy() : "id"
-    );
+            Sort sort = Sort.by(
+                request.sortOrder() == com.project.anisaalawiyah.enums.ESortOrderBy.ASC ? Sort.Direction.ASC
+                        : Sort.Direction.DESC,
+                request.sortBy() != null ? request.sortBy() : "id");
 
         PageRequest pageable = PageRequest.of(
             request.page() - 1,

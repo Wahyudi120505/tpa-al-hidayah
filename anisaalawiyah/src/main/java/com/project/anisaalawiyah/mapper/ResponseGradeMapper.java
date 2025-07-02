@@ -13,15 +13,16 @@ import com.project.anisaalawiyah.dto.response.ResponseGrade;
 @Service
 public class ResponseGradeMapper extends ADATAMapper<Grade, ResponseGrade> {
        private final ResponseStudentMapper responseStudentMapper;
+       private final ResponseSubjectMapper responseSubjectMapper;
   
     public ResponseGrade convert(Grade grade) {
     
         return ResponseGrade.builder()
                 .id(grade.getId())
-                .name(grade.getName())
                 .semester(grade.getSemester())
                 .score(grade.getScore())
                 .responseStudent(responseStudentMapper.convert(grade.getStudent())) 
+                .responseSubject(responseSubjectMapper.convert(grade.getSubject()))
                 .build();
     }
 } 

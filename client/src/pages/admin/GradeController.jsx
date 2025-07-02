@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
-import { Search, Filter, SortAsc, SortDesc, RefreshCw, Users, Info } from "lucide-react";
+import { Search, Filter, SortAsc, SortDesc, RefreshCw, Users, Info, Trash2, Edit } from "lucide-react";
 
 const GradeController = () => {
   const [dataGrades, setDataGrades] = useState([]);
@@ -240,7 +240,7 @@ const GradeController = () => {
                       Nama Santri
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ujian
+                      Subject
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nilai
@@ -250,6 +250,9 @@ const GradeController = () => {
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Orang Tua
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
                     </th>
                   </tr>
                 </thead>
@@ -287,7 +290,7 @@ const GradeController = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.name || "-"}
+                        {item.responseSubject.name || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.score ? item.score.toFixed(1) : "-"}
@@ -297,6 +300,30 @@ const GradeController = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.responseStudent?.responeParent?.name || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            // onClick={() => handleShowEditModal(item)}
+                            className="text-emerald-600 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-50"
+                            title="Edit"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            // onClick={() => handleClick(item.id)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                            title="Detail"
+                          >
+                            <Info className="w-5 h-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -339,7 +339,6 @@ const AbsensiController = () => {
     label: `${student.name} (ID: ${student.id})`,
   }));
 
-  // Get unique class levels for filter
   const classLevels = [
     ...new Set(
       tampIdStudent.map((student) => student.classLevel).filter(Boolean)
@@ -978,8 +977,9 @@ const AbsensiController = () => {
                 <button
                   type="submit"
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                  disabled={loading}
                 >
-                  Simpan Perubahan
+                  {loading ? "Memuat..." : "Simpan Perubahan"}
                 </button>
               </form>
             </div>
