@@ -644,12 +644,6 @@ const AbsensiController = () => {
                             <Edit className="w-5 h-5" />
                           </button>
                           <button
-                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                          <button
                             onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
                             title="Detail"
@@ -1091,56 +1085,14 @@ const AbsensiController = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <h3 className="text-xl font-semibold text-emerald-600 mt-8 mb-4 border-b pb-2 flex items-center gap-2">
-                <Users className="w-5 h-5" /> Orang Tua
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <Hash className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.responeParent?.id ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
                   <div>
                     <label className="text-xs uppercase text-gray-400">
-                      Nama
+                      Orang Tua
                     </label>
                     <p className="font-semibold">
                       {detailInfoModal.responseStudent?.responeParent?.name ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Email
-                    </label>
-                    <p className="font-semibold break-words">
-                      {detailInfoModal.responseStudent?.responeParent?.email ||
-                        "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      No HP
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.responeParent?.noHp ||
                         "-"}
                     </p>
                   </div>

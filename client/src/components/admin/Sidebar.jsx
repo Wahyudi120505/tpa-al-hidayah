@@ -108,7 +108,7 @@ const Sidebar = ({ menuActive }) => {
             </div>
             <div>
               <h1 className="text-xl font-bold">Admin Panel</h1>
-              <p className="text-emerald-200 text-sm">Pesantren System</p>
+              <p className="text-emerald-200 text-sm">Al-Hidayah System</p>
             </div>
           </div>
 
