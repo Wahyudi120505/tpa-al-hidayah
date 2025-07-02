@@ -10,61 +10,70 @@ const HafalanStudent = () => {
     const [error, setError] = useState("");
     const [selectedHafalan, setSelectedHafalan] = useState(null); // State for selected hafalan
     const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
+    console.log(JSON.parse(localStorage.getItem("user")));
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const parentId = user.parentId;
-        setParentId(parentId);
+        const parent = user?.responseStudent?.responeParent;
+    
+        if (parent?.id) {
+            setParentId(parent.id);
+        } else {
+            setError("Data siswa tidak ditemukan.");
+            setLoading(false);
+        }
+    
         fetchDataHafalan();
     }, []);
+    
 
     useEffect(() => {
         if (dataHafalan.length > 0 && parentId) {
             const filtered = dataHafalan.filter(
-                (hafalan) => hafalan.responseStudent.responeParent.id === parseInt(parentId)
+                (hafalan) =>
+                    hafalan?.responseStudent?.responeParent?.id === parseInt(parentId)
             );
             setFilteredHafalan(filtered);
         }
     }, [dataHafalan, parentId]);
+    
 
-    const fetchDataHafalan = async () => {
-        try {
-            const token = Cookies.get("authToken");
-
-            const resMeta = await fetch(
-                "http://localhost:8080/api/student-memorization-status?page=1&size=1&sortOrder=ASC",
+        const fetchDataHafalan = async () => {
+            try {
+              const token = Cookies.get("authToken");
+          
+              const response = await fetch(
+                "http://localhost:8080/api/student-memorization-status?page=1&size=1000&sortOrder=ASC",
                 {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
                 }
-            );
-
-            const meta = await resMeta.json();
-            const total = meta.totalElements || 1000;
-
-            const response = await fetch(
-                `http://localhost:8080/api/student-memorization-status?page=1&size=${total}&sortOrder=ASC`,
-                {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            const data = await response.json();
-            setDataHafalan(data.content || []);
-        } catch (err) {
-            console.error("Error fetching data:", err);
-            setError("Gagal mengambil data hafalan. Silakan coba lagi.");
-        } finally {
-            setLoading(false);
-        }
-    };
+              );
+          
+              const contentType = response.headers.get("content-type");
+          
+              if (!response.ok) {
+                throw new Error(`HTTP error: ${response.status}`);
+              }
+          
+              if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                setDataHafalan(data.content || []);
+              } else {
+                // Response kosong / tidak JSON
+                setDataHafalan([]);
+              }
+            } catch (err) {
+              console.error("Error fetching data:", err);
+              setError("Gagal mengambil data hafalan. Silakan coba lagi.");
+            } finally {
+              setLoading(false);
+            }
+          };
+          
 
     const getStatusBadgeColor = (status) => {
         switch (status) {
@@ -125,13 +134,13 @@ const HafalanStudent = () => {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
                         {error}
                     </div>
                 </div>
             </div>
         );
-    }
+    }    
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">

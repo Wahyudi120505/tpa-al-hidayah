@@ -54,7 +54,7 @@ const Register: React.FC = () => {
         if (response.ok) {
           // Store token if API returns one
           if (data.token) {
-            Cookies.set("authToken", data.token, { expires: 7 });
+            Cookies.set("authToken", data.token, { expires: 1 });
             navigate("/home");
           } else {
             // Clear form and redirect to login

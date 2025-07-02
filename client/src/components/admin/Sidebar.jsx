@@ -57,7 +57,14 @@ const Sidebar = ({ menuActive }) => {
       icon: FileText,
       path: `${basePath}/grade`,
     },
+    {
+      id: "subject",
+      name: "Subject",
+      icon: ScrollText,
+      path: `${basePath}/subject`,
+    },
   ];
+
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -126,21 +133,19 @@ const Sidebar = ({ menuActive }) => {
                     className={`
                       w-full flex items-center space-x-3 px-4 py-3 rounded-lg 
                       transition-all duration-200 text-left group
-                      ${
-                        activeMenu === item.id
-                          ? "bg-white text-emerald-800 shadow-lg transform scale-105"
-                          : "text-emerald-100 hover:bg-emerald-700 hover:text-white hover:transform hover:scale-105"
+                      ${activeMenu === item.id
+                        ? "bg-white text-emerald-800 shadow-lg transform scale-105"
+                        : "text-emerald-100 hover:bg-emerald-700 hover:text-white hover:transform hover:scale-105"
                       }
                     `}
                   >
                     <IconComponent
                       className={`
                       w-5 h-5 transition-colors
-                      ${
-                        activeMenu === item.id
+                      ${activeMenu === item.id
                           ? "text-emerald-700"
                           : "text-emerald-300 group-hover:text-white"
-                      }
+                        }
                     `}
                     />
                     <span className="font-medium">{item.name}</span>
