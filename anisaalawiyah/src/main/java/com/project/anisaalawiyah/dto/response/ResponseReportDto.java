@@ -10,5 +10,6 @@ import lombok.Setter;
 public class ResponseReportDto {
     private String link;      
     private String fileName;  
-    private Long fileSize;    
+    private Long fileSize;
+    private byte[] fileContent;    
 }
