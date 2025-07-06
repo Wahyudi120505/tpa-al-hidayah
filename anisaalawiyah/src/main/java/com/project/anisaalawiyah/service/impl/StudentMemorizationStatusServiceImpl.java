@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.project.anisaalawiyah.dto.request.RequestFindAllStudentMemorizationStatus;
 import com.project.anisaalawiyah.dto.request.RequestStudentMemorizationStatus;
+import com.project.anisaalawiyah.dto.response.ResponseSurahMemorizationStatus;
+import com.project.anisaalawiyah.mapper.ResponseSurahMapper;
 import com.project.anisaalawiyah.model.Student;
 import com.project.anisaalawiyah.model.StudentMemorizationStatus;
 import com.project.anisaalawiyah.model.Surah;
@@ -21,6 +23,8 @@ import com.project.anisaalawiyah.service.StudentMemorizationStatusService;
 import org.springframework.data.jpa.domain.Specification;
 import org.apache.logging.log4j.util.Strings;
 import java.time.LocalDate;
+import java.util.List;
+
 import jakarta.persistence.criteria.Predicate;
 
 
@@ -31,9 +35,10 @@ import jakarta.persistence.criteria.Predicate;
 public class StudentMemorizationStatusServiceImpl implements StudentMemorizationStatusService {
 
     private final StudentMemorizationStatusRepository memorizationStatusRepository;
+    private final ResponseSurahMapper responseSurahMapper;
     private final StudentRepository studentRepository;
     private final SurahRepository surahRepository;
-
+ 
     @Override
     public StudentMemorizationStatus create(RequestStudentMemorizationStatus request)throws ServiceException  {
         Student student = studentRepository.findById(request.studentId())
@@ -123,6 +128,32 @@ public class StudentMemorizationStatusServiceImpl implements StudentMemorization
         return memorizationStatusRepository.findAll(spec, pageable);
     }
 
+  
+ @Override
+    public List<ResponseSurahMemorizationStatus> getAllSurahWithMemorizationStatus(Long studentId) {
+        var allSurah = surahRepository.findAll();
+        var memorizedList = memorizationStatusRepository.findByStudentId(studentId);
+        var surahIdToStatus = memorizedList.stream()
+            .collect(java.util.stream.Collectors.toMap(
+                s -> s.getSurah().getId(),
+                s -> s
+            ));
+        java.util.List<com.project.anisaalawiyah.dto.response.ResponseSurahMemorizationStatus> result = new java.util.ArrayList<>();
+        for (var surah : allSurah) {
+            var status = surahIdToStatus.get(surah.getId());
+            result.add(
+                ResponseSurahMemorizationStatus.builder()
+                    .suratId(surah.getId())
+                    .surah(responseSurahMapper.convert(surah))
+                    .memorizationStatus(status != null ? status.getStatus() : null)
+                    .updatedAt(status != null ? status.getUpdatedAt() : null)
+                    .build()
+            );
+        }
+        return result;
+    }
+
+  
   
 
  

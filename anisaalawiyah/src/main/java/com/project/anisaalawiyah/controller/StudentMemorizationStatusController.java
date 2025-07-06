@@ -115,4 +115,16 @@ public class StudentMemorizationStatusController {
             return ResponseEntity.internalServerError().body(GeneralResponse.error(MessageConstant.INTERNAL_SERVER_ERROR));
         }
     }
+
+     @GetMapping("/student/{studentId}")
+    public ResponseEntity<?> getAllSurahWithMemorizationStatus(@PathVariable Long studentId) {
+        try {
+            var result = studentMemorizationStatusService.getAllSurahWithMemorizationStatus(studentId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error in getAllSurahWithMemorizationStatus: ", e);
+            return ResponseEntity.internalServerError().body(GeneralResponse.error(MessageConstant.INTERNAL_SERVER_ERROR));
+        }
+    }
+
 }
