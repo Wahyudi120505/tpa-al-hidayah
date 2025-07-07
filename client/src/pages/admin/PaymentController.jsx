@@ -2,7 +2,15 @@
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
-import { Search, Filter, SortAsc, SortDesc, RefreshCw, UserPlus, Info } from "lucide-react";
+import {
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  RefreshCw,
+  UserPlus,
+  Info,
+} from "lucide-react";
 
 const PaymentController = () => {
   const [dataPayments, setDataPayments] = useState([]);
@@ -18,6 +26,15 @@ const PaymentController = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("");
+  const [newSantriModal, setNewSantriModal] = useState(false);
+  const [form, setForm] = useState({
+    id: "",
+    name: "",
+    gender: "",
+    birthDate: "",
+    classLevel: "",
+    parent_id: 0,
+  });
 
   useEffect(() => {
     fetchData();
@@ -85,6 +102,39 @@ const PaymentController = () => {
       setError(`Gagal mengambil data pembayaran: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
+
+      const response = await fetch("http://localhost:8080/api/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (response.ok) {
+        alert("Data santri berhasil ditambahkan!");
+        setForm({
+          name: "",
+          gender: "",
+          birthDate: "",
+          classLevel: "",
+          parentId: 0,
+        });
+        setNewSantriModal(false);
+      } else {
+        alert("Gagal mengirim data");
+      }
+    } catch (err) {
+      console.error("Error saat mengirim data:", err);
+      alert("Terjadi kesalahan server");
     }
   };
 
@@ -302,7 +352,7 @@ const PaymentController = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
+                      No
                     </th>
                     <th className="px-20 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nama Santri
@@ -319,13 +369,13 @@ const PaymentController = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dataPayments.map((item) => (
+                  {dataPayments.map((item, index) => (
                     <tr
                       key={item.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.id}
+                        {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -451,6 +501,163 @@ const PaymentController = () => {
                   </span>
                 )}
               </span>
+            </div>
+          </div>
+        )}
+
+        {newSantriModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setNewSantriModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Modal Header */}
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Tambah Santri
+              </h2>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Nama
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="gender"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Gender
+                    </label>
+                    <select
+                      id="gender"
+                      name="gender"
+                      value={form.gender}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="">Pilih Gender</option>
+                      <option value="L">Laki-Laki</option>
+                      <option value="P">Perempuan</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="birthDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Tanggal lahir
+                    </label>
+                    <input
+                      type="date"
+                      id="birthDate"
+                      name="birthDate"
+                      value={form.birthDate}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="classLevel"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      ClassLevel
+                    </label>
+                    <select
+                      id="classLevel"
+                      name="classLevel"
+                      value={form.classLevel}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="">Pilih Kelas</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="parentId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Parent
+                    </label>
+                    <Select
+                      inputId="parentId"
+                      name="parentId"
+                      options={parentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          parentId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        parentOptions.find(
+                          (opt) => opt.value === form.parent_id
+                        ) || null
+                      }
+                      placeholder="Pilih Orang Tua..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => setNewSantriModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  >
+                    {loading ? "Memuat..." : "Tambah"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
