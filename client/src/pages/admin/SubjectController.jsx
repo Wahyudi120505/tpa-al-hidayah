@@ -418,24 +418,24 @@ const SubjectControllerEdit = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
+                      No
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nama Mata Pelajaran
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aksi
+                      Action
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {subjectData.map((subject) => (
+                  {subjectData.map((subject, index) => (
                     <tr
                       key={subject.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {subject.id}
+                        {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center">
@@ -718,17 +718,7 @@ const SubjectControllerEdit = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <User className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID Mata Pelajaran
-                    </label>
-                    <p className="font-semibold text-gray-900">
-                      {selectedSubject.id}
-                    </p>
-                  </div>
-                </div>
+                
               </div>
               <div className="mt-6 flex justify-end">
                 <button

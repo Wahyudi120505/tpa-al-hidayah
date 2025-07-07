@@ -534,13 +534,13 @@ const SantriController = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.map((item) => (
+                  {data.map((item, index) => (
                     <tr
                       key={item.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.id}
+                        {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -966,15 +966,6 @@ const SantriController = () => {
 
               {/* Detail Santri */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <Hash className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID
-                    </label>
-                    <p className="font-semibold">{detailInfoModal.id || "-"}</p>
-                  </div>
-                </div>
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
                   <div>

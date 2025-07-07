@@ -78,7 +78,7 @@ const StudentMemorizationController = () => {
 
   const studentOptions = students.map((student) => ({
     value: student.id,
-    label: `${student.name} (ID: ${student.id})`,
+    label: `${student.name}`,
   }));
 
   const surahOptions = surahs.map((surah) => ({
@@ -609,7 +609,7 @@ const StudentMemorizationController = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
+                      No
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nama Santri
@@ -632,13 +632,13 @@ const StudentMemorizationController = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dataHafalan.map((item) => (
+                  {dataHafalan.map((item, index) => (
                     <tr
                       key={item.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.id}
+                        {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -1116,15 +1116,6 @@ const StudentMemorizationController = () => {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <Hash className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      ID Setoran
-                    </label>
-                    <p className="font-semibold">{detailInfoModal.id || "-"}</p>
-                  </div>
-                </div>
                 <div className="flex items-start gap-3">
                   <BookOpen className="mt-1 text-emerald-500" />
                   <div>

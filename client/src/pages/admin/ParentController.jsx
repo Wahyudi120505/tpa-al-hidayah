@@ -401,7 +401,7 @@ const ParentController = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
+                      No
                     </th>
                     <th className="px-20 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nama
@@ -418,13 +418,13 @@ const ParentController = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.map((item) => (
+                  {data.map((item, index) => (
                     <tr
                       key={item.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.id}
+                        {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -677,14 +677,6 @@ const ParentController = () => {
 
               {/* Konten */}
               <div className="space-y-4 text-sm text-gray-800">
-                <div className="flex items-center gap-3">
-                  <Hash className="text-emerald-500 w-5 h-5" />
-                  <div>
-                    <p className="text-xs text-gray-500">ID</p>
-                    <p className="font-medium">{detailInfoModal.id || "-"}</p>
-                  </div>
-                </div>
-
                 <div className="flex items-center gap-3">
                   <User className="text-emerald-500 w-5 h-5" />
                   <div>
