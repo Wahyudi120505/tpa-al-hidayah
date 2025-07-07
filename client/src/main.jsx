@@ -16,9 +16,9 @@ import GradeController from "./pages/admin/GradeController.jsx";
 import ParentLayout from "./layout/ParentLayout.jsx";
 import HomepageParent from "./pages/parent/HomePageParent.jsx";
 import HafalanStudent from "./pages/parent/HafalanStudent.jsx";
-import GradeStudent from "./pages/parent/GradeStudent.jsx";
 import ProfileParent from "./pages/parent/ProfileParent.jsx";
 import SubjectController from "./pages/admin/SubjectController.jsx";
+import RaportStudent from "./pages/parent/RaportStudent.jsx";
 
 const router = createBrowserRouter([
   {
@@ -90,8 +90,8 @@ const router = createBrowserRouter([
             element:<HafalanStudent />
           },
           {
-            path:"grade",
-            element:<GradeStudent />
+            path:"raport",
+            element: <RaportStudent />
           },
           {
             path:"profile-parent",

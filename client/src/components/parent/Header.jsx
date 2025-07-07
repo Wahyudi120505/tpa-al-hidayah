@@ -86,7 +86,7 @@ const Header = () => {
               Hafalan
             </button>
             <button
-              onClick={() => navigate("grade")}
+              onClick={() => navigate("raport")}
               className={`flex items-center text-sm font-medium transition-all duration-300 ${
                 isScrolled
                   ? 'text-white hover:text-yellow-400'
@@ -94,7 +94,7 @@ const Header = () => {
               } group`}
             >
               <GraduationCap className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-              Grade
+              Raport
             </button>
           </div>
 
