@@ -10,7 +10,18 @@ import {
   RefreshCw,
   UserPlus,
   Info,
+  Plus,
+  X,
+  Edit,
+  Trash2,
+  Users,
+  XCircle,
+  CheckCircle,
+  Calendar,
+  User,
+  BadgeInfo,
 } from "lucide-react";
+import Select from "react-select";
 
 const PaymentController = () => {
   const [dataPayments, setDataPayments] = useState([]);
@@ -26,15 +37,19 @@ const PaymentController = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("");
-  const [newSantriModal, setNewSantriModal] = useState(false);
+  const [newPaymentModal, setNewPaymentModal] = useState(false);
+  const [editPaymentModal, setEditPaymentModal] = useState(false);
+  const [editPaymentId, setEditPaymentId] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [infoModal, setInfoModal] = useState(false);
+  const [detailInfoModal, setDetailInfoModal] = useState({});
   const [form, setForm] = useState({
-    id: "",
-    name: "",
-    gender: "",
-    birthDate: "",
-    classLevel: "",
-    parent_id: 0,
+    studentId: "",
+    date: new Date().toISOString().split("T")[0], // Default to current date (YYYY-MM-DD)
+    paymentDate: new Date().toISOString().split("T")[0], // Default to current date (YYYY-MM-DD)
+    status: "",
   });
+  const [formError, setFormError] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -54,6 +69,7 @@ const PaymentController = () => {
     setError(null);
 
     try {
+      // Fetch payments
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -97,44 +113,110 @@ const PaymentController = () => {
       setDataPayments(jsonData.content || []);
       setTotalPages(jsonData.totalPages || 0);
       setTotalElements(jsonData.totalElements || 0);
+
+      // Fetch students for the dropdown
+      const studentsResponse = await fetch(
+        "http://localhost:8080/api/students?page=1&size=1000&sortOrder=ASC",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!studentsResponse.ok) {
+        throw new Error(`HTTP error! status: ${studentsResponse.status}`);
+      }
+      const studentsData = await studentsResponse.json();
+      setStudents(studentsData.content || []);
     } catch (error) {
-      console.error("Gagal mengambil data pembayaran:", error);
-      setError(`Gagal mengambil data pembayaran: ${error.message}`);
+      console.error("Gagal mengambil data:", error);
+      setError(`Gagal mengambil data: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const studentOptions = students.map((student) => ({
+    value: student.id,
+    label: `${student.name}`,
+  }));
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setFormError(null);
+  };
+
+  const handleShowEditModal = (payment) => {
+    setForm({
+      studentId: payment.responseStudent?.id || "",
+      date: payment.date ? payment.date.split("T")[0] : "",
+      paymentDate: payment.paymentDate ? payment.paymentDate.split("T")[0] : "",
+      status: payment.status || "",
+    });
+    setEditPaymentId(payment.id);
+    setEditPaymentModal(true);
+    setFormError(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.studentId || !form.date || !form.paymentDate || !form.status) {
+      setFormError("Semua field wajib diisi");
+      return;
+    }
+
     try {
       const token = Cookies.get("authToken");
+      const url = editPaymentId
+        ? `http://localhost:8080/api/payments/${editPaymentId}`
+        : "http://localhost:8080/api/payments";
+      const method = editPaymentId ? "PUT" : "POST";
 
-      const response = await fetch("http://localhost:8080/api/students", {
-        method: "POST",
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          student_id: Number(form.studentId),
+          date: form.date,
+          paymentDate: form.paymentDate,
+          status: form.status,
+        }),
       });
 
       if (response.ok) {
-        alert("Data santri berhasil ditambahkan!");
+        alert(
+          editPaymentId
+            ? "Data pembayaran berhasil diperbarui!"
+            : "Data pembayaran berhasil ditambahkan!"
+        );
         setForm({
-          name: "",
-          gender: "",
-          birthDate: "",
-          classLevel: "",
-          parentId: 0,
+          studentId: "",
+          date: new Date().toISOString().split("T")[0],
+          paymentDate: new Date().toISOString().split("T")[0],
+          status: "",
         });
-        setNewSantriModal(false);
+        setNewPaymentModal(false);
+        setEditPaymentModal(false);
+        setEditPaymentId(null);
+        setFormError(null);
+        fetchData();
       } else {
-        alert("Gagal mengirim data");
+        const errorData = await response.json();
+        setFormError(errorData.message || "Gagal menyimpan pembayaran");
       }
     } catch (err) {
       console.error("Error saat mengirim data:", err);
-      alert("Terjadi kesalahan server");
+      setFormError("Terjadi kesalahan server");
     }
   };
 
@@ -165,6 +247,11 @@ const PaymentController = () => {
     setSortOrder((prev) => (prev === "ASC" ? "DESC" : "ASC"));
   };
 
+  const handleShowInfo = (item) => {
+    setDetailInfoModal(item);
+    setInfoModal(true);
+  };
+
   return (
     <>
       <Sidebar menuActive={"spp"} />
@@ -177,6 +264,22 @@ const PaymentController = () => {
               </h1>
               <p className="text-gray-600">Kelola data pembayaran santri</p>
             </div>
+            <button
+              onClick={() => {
+                setNewPaymentModal(true);
+                setForm({
+                  studentId: "",
+                  date: new Date().toISOString().split("T")[0],
+                  paymentDate: new Date().toISOString().split("T")[0],
+                  status: "",
+                });
+                setFormError(null);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Payment</span>
+            </button>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
@@ -366,6 +469,9 @@ const PaymentController = () => {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Orang Tua
                     </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -425,6 +531,24 @@ const PaymentController = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.responseStudent?.responeParent?.name || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => handleShowEditModal(item)}
+                            className="text-emerald-600 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-50"
+                            title="Edit"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleShowInfo(item)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                            title="Delete"
+                          >
+                            <Info className="w-5 h-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -505,7 +629,7 @@ const PaymentController = () => {
           </div>
         )}
 
-        {newSantriModal && (
+        {newPaymentModal && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
             aria-modal="true"
@@ -513,139 +637,104 @@ const PaymentController = () => {
             aria-labelledby="modal-title"
           >
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
-              {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
-                onClick={() => setNewSantriModal(false)}
+                onClick={() => {
+                  setNewPaymentModal(false);
+                  setForm({
+                    studentId: "",
+                    date: new Date().toISOString().split("T")[0],
+                    paymentDate: new Date().toISOString().split("T")[0],
+                    status: "",
+                  });
+                  setFormError(null);
+                }}
                 aria-label="Tutup modal"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Modal Header */}
               <h2
                 id="modal-title"
                 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
               >
-                Tambah Santri
+                Tambah Pembayaran
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
+                {formError && (
+                  <div className="mb-4 text-red-600 text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
                 <div className="space-y-4">
                   <div>
                     <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Nama
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="gender"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Gender
-                    </label>
-                    <select
-                      id="gender"
-                      name="gender"
-                      value={form.gender}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
-                    >
-                      <option value="">Pilih Gender</option>
-                      <option value="L">Laki-Laki</option>
-                      <option value="P">Perempuan</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="birthDate"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Tanggal lahir
-                    </label>
-                    <input
-                      type="date"
-                      id="birthDate"
-                      name="birthDate"
-                      value={form.birthDate}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="classLevel"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      ClassLevel
-                    </label>
-                    <select
-                      id="classLevel"
-                      name="classLevel"
-                      value={form.classLevel}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
-                    >
-                      <option value="">Pilih Kelas</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                      <option value="6">6</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="parentId"
+                      htmlFor="studentId"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Parent
+                      Santri
                     </label>
                     <Select
-                      inputId="parentId"
-                      name="parentId"
-                      options={parentOptions}
+                      inputId="studentId"
+                      name="studentId"
+                      options={studentOptions}
                       onChange={(selectedOption) =>
                         setForm((prev) => ({
                           ...prev,
-                          parentId: selectedOption?.value || "",
+                          studentId: selectedOption?.value || "",
                         }))
                       }
                       value={
-                        parentOptions.find(
-                          (opt) => opt.value === form.parent_id
+                        studentOptions.find(
+                          (opt) => opt.value === form.studentId
                         ) || null
                       }
-                      placeholder="Pilih Orang Tua..."
+                      placeholder="Pilih Santri..."
                       isClearable
                       className="react-select-container"
                       classNamePrefix="react-select"
+                      required
                     />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="status"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={form.status}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Status
+                      </option>
+                      <option value="LUNAS">Lunas</option>
+                      <option value="BELUM_DIBAYAR">Belum Dibayar</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Modal Footer */}
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                    onClick={() => setNewSantriModal(false)}
+                    onClick={() => {
+                      setNewPaymentModal(false);
+                      setForm({
+                        studentId: "",
+                        date: new Date().toISOString().split("T")[0],
+                        paymentDate: new Date().toISOString().split("T")[0],
+                        status: "",
+                      });
+                      setFormError(null);
+                    }}
                   >
                     Batal
                   </button>
@@ -658,6 +747,232 @@ const PaymentController = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {editPaymentModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="edit-modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => {
+                  setEditPaymentModal(false);
+                  setEditPaymentId(null);
+                  setForm({
+                    studentId: "",
+                    date: new Date().toISOString().split("T")[0],
+                    paymentDate: new Date().toISOString().split("T")[0],
+                    status: "",
+                  });
+                  setFormError(null);
+                }}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h2
+                id="edit-modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
+              >
+                Edit Pembayaran
+              </h2>
+
+              <form onSubmit={handleSubmit}>
+                {formError && (
+                  <div className="mb-4 text-red-600 text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="studentId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Santri
+                    </label>
+                    <Select
+                      inputId="studentId"
+                      name="studentId"
+                      options={studentOptions}
+                      onChange={(selectedOption) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          studentId: selectedOption?.value || "",
+                        }))
+                      }
+                      value={
+                        studentOptions.find(
+                          (opt) => opt.value === form.studentId
+                        ) || null
+                      }
+                      placeholder="Pilih Santri..."
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="status"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={form.status}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Status
+                      </option>
+                      <option value="LUNAS">Lunas</option>
+                      <option value="BELUM_DIBAYAR">Belum Dibayar</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => {
+                      setEditPaymentModal(false);
+                      setEditPaymentId(null);
+                      setForm({
+                        studentId: "",
+                        date: new Date().toISOString().split("T")[0],
+                        paymentDate: new Date().toISOString().split("T")[0],
+                        status: "",
+                      });
+                      setFormError(null);
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  >
+                    {loading ? "Memuat..." : "Simpan"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        {infoModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="info-modal-title"
+          >
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
+              <button
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
+                onClick={() => setInfoModal(false)}
+                aria-label="Tutup modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h2
+                id="info-modal-title"
+                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2 flex items-center space-x-2"
+              >
+                <Info className="w-5 h-5 text-emerald-600" />
+                <span>Detail Pembayaran</span>
+              </h2>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <User className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Nama Santri
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.name ||
+                        "Tidak tersedia"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Calendar className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Tanggal Pembayaran
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.paymentDate
+                        ? new Date(
+                            detailInfoModal.paymentDate
+                          ).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : "Tidak tersedia"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">Status</label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        detailInfoModal.status === "LUNAS"
+                          ? "bg-green-100 text-green-800"
+                          : detailInfoModal.status === "BELUM_DIBAYAR"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {detailInfoModal.status === "LUNAS"
+                        ? "Lunas"
+                        : detailInfoModal.status === "BELUM_DIBAYAR"
+                        ? "Belum Dibayar"
+                        : detailInfoModal.status || "Tidak tersedia"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Users className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Orang Tua
+                    </label>
+                    <p className="font-semibold">
+                      {detailInfoModal.responseStudent?.responeParent?.name ||
+                        "Tidak tersedia"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setInfoModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         )}

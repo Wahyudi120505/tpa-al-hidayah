@@ -19,6 +19,7 @@ import HafalanStudent from "./pages/parent/HafalanStudent.jsx";
 import ProfileParent from "./pages/parent/ProfileParent.jsx";
 import SubjectController from "./pages/admin/SubjectController.jsx";
 import RaportStudent from "./pages/parent/RaportStudent.jsx";
+import AbsensiStudent from "./pages/parent/AbsensiStudent.jsx";
 
 const router = createBrowserRouter([
   {
@@ -82,7 +83,7 @@ const router = createBrowserRouter([
         element: <ParentLayout />,
         children:[
           {
-            path:"",
+            path:"home-parent",
             element:<HomepageParent />
           },
           {
@@ -92,6 +93,10 @@ const router = createBrowserRouter([
           {
             path:"raport",
             element: <RaportStudent />
+          },
+          {
+            path:"absensi",
+            element: <AbsensiStudent />
           },
           {
             path:"profile-parent",

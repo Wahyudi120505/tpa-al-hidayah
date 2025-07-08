@@ -1,25 +1,26 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftCircle,
   GraduationCap,
-  Smile,
   User,
   User2,
   XCircle,
+  Smile,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
-const HafalanStudent = () => {
+const AbsensiStudent = () => {
+  const [parentId, setParentId] = useState("");
   const [dataStudents, setDataStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
-  const [parentId, setParentId] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(5);
   const [tamp, setTamp] = useState("h-[600px]");
 
   const SkeletonLoader = ({ className }) => (
@@ -77,12 +78,12 @@ const HafalanStudent = () => {
     }
   };
 
-  const fetchHafalanStudent = async (studentId) => {
+  const fetchAbsensiStudent = async (studentId) => {
     try {
       setLoading(true);
       const token = Cookies.get("authToken");
       const response = await fetch(
-        `http://localhost:8080/api/student-memorization-status/student/${studentId}`,
+        `http://localhost:8080/api/attendance-summary/student/${studentId}/last-months?monthsBack=12`,
         {
           method: "GET",
           headers: {
@@ -99,12 +100,12 @@ const HafalanStudent = () => {
       const jsonData = await response.json();
       setSelectedStudent({
         ...dataStudents.find((s) => s.id === studentId),
-        memorization: jsonData,
+        attendance: jsonData,
       });
       setLoading(false);
       setCurrentPage(1);
     } catch (error) {
-      setError("Gagal mengambil data hafalan.");
+      setError("Gagal mengambil data absensi.");
       setLoading(false);
     }
   };
@@ -112,7 +113,7 @@ const HafalanStudent = () => {
   const handleStudentClick = (student) => {
     setTamp("");
     setSelectedStudent(student);
-    fetchHafalanStudent(student.id);
+    fetchAbsensiStudent(student.id);
   };
 
   const handleClose = () => {
@@ -121,43 +122,18 @@ const HafalanStudent = () => {
     setCurrentPage(1);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "SUDAH_HAFAL":
-        return "bg-green-100 text-green-800";
-      case "BELUM_HAFAL":
-      case "TIDAK_HAFAL":
-      case null:
-      case "":
-        return "bg-red-100 text-red-800";
-      case "MENGULANG":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const getStatusColor = (count) => {
+    return count > 0
+      ? "bg-green-100 text-green-800"
+      : "bg-gray-100 text-gray-800";
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Belum Di Perbarui";
-    const options = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    };
-    return new Date(dateString).toLocaleDateString("id-ID", options);
-  };
-
-  // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems =
-    selectedStudent?.memorization?.slice(indexOfFirstItem, indexOfLastItem) ||
-    [];
+    selectedStudent?.attendance?.slice(indexOfFirstItem, indexOfLastItem) || [];
   const totalPages = Math.ceil(
-    (selectedStudent?.memorization?.length || 0) / itemsPerPage
+    (selectedStudent?.attendance?.length || 0) / itemsPerPage
   );
 
   const paginate = (pageNumber) => {
@@ -169,7 +145,7 @@ const HafalanStudent = () => {
   return (
     <div className={`p-6 max-w-4xl mx-auto space-y-6 ${tamp} overflow-y-auto`}>
       <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
-        Data Hafalan Santri
+        Data Absensi Santri
       </h1>
 
       {error && (
@@ -195,18 +171,19 @@ const HafalanStudent = () => {
           {filteredStudents.map((student) => (
             <motion.div
               key={student.id}
-              className="bg-white rounded-2xl shadow-lg p-5 flex items-center justify-between hover:shadow-2xl transition duration-300"
-              onClick={() => handleStudentClick(student)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
+              className="bg-white rounded-2xl shadow-lg p-5 flex items-center justify-between hover:shadow-2xl transition duration-300"
+              onClick={() => handleStudentClick(student)}
             >
               <div>
                 <p className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-                  <User2 className="text-blue-500" size={20} /> {student.name}
+                  <User2 className="text-blue-500" size={20} />
+                  {student.name}
                 </p>
                 <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <GraduationCap className="text-green-500" size={16} /> Kelas:{" "}
-                  {student.classLevel}
+                  <GraduationCap className="text-green-500" size={16} />
+                  Kelas: {student.classLevel}
                 </p>
               </div>
             </motion.div>
@@ -227,7 +204,7 @@ const HafalanStudent = () => {
                 <div className="flex items-center gap-3">
                   <User className="text-blue-100" size={28} />
                   <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-2xl font-bold">
                       {selectedStudent.name}
                     </h2>
                     <p className="text-blue-100">
@@ -236,7 +213,7 @@ const HafalanStudent = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleClose()}
+                  onClick={handleClose}
                   className="text-blue-100 hover:text-white transition-colors"
                 >
                   <ArrowLeftCircle size={28} />
@@ -246,7 +223,7 @@ const HafalanStudent = () => {
 
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Status Hafalan
+                Ringkasan Absensi
               </h3>
 
               {loading ? (
@@ -258,7 +235,7 @@ const HafalanStudent = () => {
                     />
                   ))}
                 </div>
-              ) : selectedStudent.memorization?.length > 0 ? (
+              ) : selectedStudent.attendance?.length > 0 ? (
                 <>
                   <div className="overflow-hidden border border-gray-200 rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -268,60 +245,102 @@ const HafalanStudent = () => {
                             scope="col"
                             className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                           >
-                            Surah
+                            Bulan
                           </th>
                           <th
                             scope="col"
                             className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                           >
-                            Status
+                            Total Hari
                           </th>
                           <th
                             scope="col"
                             className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                           >
-                            Terakhir Diperbarui
+                            Hadir
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                          >
+                            Izin
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                          >
+                            Alpa
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                          >
+                            Sakit
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-center px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                          >
+                            Persentase Kehadiran
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {currentItems
-                          .sort(
-                            (a, b) =>
-                              new Date(b.updatedAt) - new Date(a.updatedAt)
-                          )
-                          .map((item) => (
-                            <tr
-                              key={item.suratId}
-                              className="hover:bg-gray-50 text-center"
-                            >
-                              <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                {item.surah?.name || "-"} (Surah{" "}
-                                {item.surah?.number || "-"})
-                              </td>
-                              <td className="px-6 py-4">
-                                <span
-                                  className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                                    item.memorizationStatus
-                                  )}`}
-                                >
-                                  {item.memorizationStatus === "SUDAH_HAFAL"
-                                    ? "Sudah Hafal"
-                                    : item.memorizationStatus === "MENGULANG"
-                                    ? "Mengulang"
-                                    : "Belum Hafal"}
-                                </span>
-                              </td>
-
-                              <td className="px-6 py-4 text-sm text-gray-500">
-                                {formatDate(item.updatedAt)}
-                              </td>
-                            </tr>
-                          ))}
+                        {currentItems.map((item, index) => (
+                          <tr
+                            key={index}
+                            className="hover:bg-gray-50 text-center"
+                          >
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                              {item.month} {item.year}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {item.totalDays}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                  item.hadirCount
+                                )}`}
+                              >
+                                {item.hadirCount}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                  item.izinCount
+                                )}`}
+                              >
+                                {item.izinCount}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                  item.alfaCount
+                                )}`}
+                              >
+                                {item.alfaCount}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                  item.sakitCount
+                                )}`}
+                              >
+                                {item.sakitCount}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {item.attendancePercentage}%
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
-                  {/* Pagination Controls */}
                   {totalPages > 1 && (
                     <div className="mt-4 flex justify-center space-x-2">
                       <button
@@ -366,12 +385,12 @@ const HafalanStudent = () => {
                 </>
               ) : (
                 <div className="text-center py-12">
-                  <Smile className="mx-auto h-12 w-62 text-gray-400" />
+                  <Smile className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    Tidak ada data hafalan
+                    Tidak ada data absensi
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Belum ada catatan hafalan untuk santri ini.
+                    Belum ada catatan absensi untuk santri ini.
                   </p>
                 </div>
               )}
@@ -383,4 +402,4 @@ const HafalanStudent = () => {
   );
 };
 
-export default HafalanStudent;
+export default AbsensiStudent;

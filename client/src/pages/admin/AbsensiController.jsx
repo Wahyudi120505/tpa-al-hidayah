@@ -167,57 +167,62 @@ const AbsensiController = () => {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = Cookies.get("authToken");
-      const validAttendances = attendanceData
-        .filter((item) => item.status)
-        .map((item) => ({
-          date: bulkDate,
-          status: item.status,
-          studentId: item.studentId,
-        }));
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const token = Cookies.get("authToken");
 
-      if (validAttendances.length === 0) {
-        alert("Pilih setidaknya satu status kehadiran untuk santri!");
-        return;
-      }
+    const allStudentsHaveStatus = tampIdStudent.every((student) =>
+      attendanceData.some((entry) => entry.studentId === student.id && entry.status)
+    );
 
-      const responses = await Promise.all(
-        validAttendances.map((attendance) =>
-          fetch("http://localhost:8080/api/attendances", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(attendance),
-          })
-        )
-      );
-
-      const allSuccessful = responses.every((res) => res.ok);
-      if (allSuccessful) {
-        alert("Data absensi berhasil ditambahkan!");
-        setAttendanceData(
-          tampIdStudent.map((student) => ({
-            studentId: student.id,
-            status: "",
-          }))
-        );
-        setBulkDate(today);
-        setClassLevelFilter("");
-        setNewAbsensiModal(false);
-        fetchData();
-      } else {
-        alert("Gagal menambahkan beberapa data absensi");
-      }
-    } catch (err) {
-      console.error("Error saat mengirim data:", err);
-      alert("Terjadi kesalahan server");
+    if (!allStudentsHaveStatus) {
+      alert("Semua santri wajib memiliki status absensi!");
+      return;
     }
-  };
+
+    const validAttendances = attendanceData
+      .filter((item) => item.status)
+      .map((item) => ({
+        date: bulkDate,
+        status: item.status,
+        studentId: item.studentId,
+      }));
+
+    const responses = await Promise.all(
+      validAttendances.map((attendance) =>
+        fetch("http://localhost:8080/api/attendances", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(attendance),
+        })
+      )
+    );
+
+    const allSuccessful = responses.every((res) => res.ok);
+    if (allSuccessful) {
+      alert("Data absensi berhasil ditambahkan!");
+      setAttendanceData(
+        tampIdStudent.map((student) => ({
+          studentId: student.id,
+          status: "",
+        }))
+      );
+      setBulkDate(today);
+      setClassLevelFilter("");
+      setNewAbsensiModal(false);
+      fetchData();
+    } else {
+      alert("Gagal menambahkan beberapa data absensi");
+    }
+  } catch (err) {
+    console.error("Error saat mengirim data:", err);
+    alert("Terjadi kesalahan server");
+  }
+};
 
   const handleShowEditModal = (absensi) => {
     setSelectedAbsensiId(absensi.id);

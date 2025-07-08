@@ -452,7 +452,6 @@ const StudentMemorizationController = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cari berdasarkan nama santri atau surah..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    disabled={loading || filterLoading}
                   />
                 </div>
               </div>
@@ -1130,7 +1129,7 @@ const StudentMemorizationController = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <BadgeInfo className="mt-1 text-emerald-500" />
+                  <BadgeInfo className="w-5 h-5 text-emerald-500" />
                   <div>
                     <label className="text-xs uppercase text-gray-400">
                       Status

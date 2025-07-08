@@ -30,8 +30,6 @@ const ProfileParent = () => {
 
         {/* Content */}
         <div className="p-8 space-y-6">
-
-
           <div className="lex items-center gap-3 p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-300">
             <User2 className="w-6 h-6 text-indigo-600" />
             <div>
@@ -62,7 +60,6 @@ const ProfileParent = () => {
             </div>
           </div>
 
-
           <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-300">
             <Shield className="w-6 h-6 text-indigo-600" />
             <div>
@@ -71,40 +68,6 @@ const ProfileParent = () => {
                 {data.role || "N/A"}
               </p>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-indigo-800">Children</h2>
-            {dataStudent.map((student) => (
-              <div
-                key={student.id}
-                className="border border-indigo-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition duration-300"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <Users className="w-6 h-6 text-indigo-600" />
-                  <h3 className="text-lg font-semibold text-indigo-900">{student.name || "N/A"}</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div>
-                    <span className="font-medium">Gender:</span>{" "}
-                    {student.gender === "L" ? "Laki-laki" : student.gender === "P" ? "Perempuan" : "N/A"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Birth Date:</span>{" "}
-                    {student.birthDate || "N/A"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Class Level:</span>{" "}
-                    {student.classLevel || "N/A"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Student ID:</span>{" "}
-                    {student.id}
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -1,24 +1,30 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Cookies from "js-cookie";
+import { School, XCircle, Eye, EyeOff } from "lucide-react";
+
+interface User {
+  role: "ADMIN" | "PARENT" | string;
+  [key: string]: any;
+}
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setemail] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Check if user is already logged in
-  const token = Cookies.get("authToken");
   useEffect(() => {
+    const token = Cookies.get("authToken");
     const userData = localStorage.getItem("user");
     if (token && userData) {
-      const user = JSON.parse(userData);
-
-      if (user.role === "ADMIN" ) {
+      const user: User = JSON.parse(userData);
+      if (user.role === "ADMIN") {
         navigate("/admin");
       } else if (user.role === "PARENT") {
         navigate("/parent");
@@ -26,15 +32,15 @@ const Login: React.FC = () => {
         navigate("/");
       }
     }
-  }, [navigate, token]);
+  }, [navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     if (!email || !password) {
-      setError("Please fill in all fields");
+      setError("Silakan isi semua kolom");
       setIsLoading(false);
       return;
     }
@@ -48,41 +54,63 @@ const Login: React.FC = () => {
         body: JSON.stringify({ email, password }),
       });
 
-     const result = await response.json(); // ganti nama dari 'data' ke 'result'
+      const result: { data: { token: string; [key: string]: any }; responseMessage?: string } = await response.json();
 
       if (response.ok) {
-        const token = result.data.token; // akses dari result.data.token
+        const token = result.data.token;
         Cookies.set("authToken", token, { expires: 1 });
         const user = result.data;
         localStorage.setItem("user", JSON.stringify(user));
 
-        navigate("/"); 
+        if (user.role === "ADMIN") {
+          navigate("/admin");
+        } else if (user.role === "PARENT") {
+          navigate("/parent/home-parent");
+        } else {
+          navigate("/");
+        }
       } else {
-        setError(result.responseMessage || "Invalid email or password");
+        setError(result.responseMessage || "Email atau kata sandi salah");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      setError("Something went wrong. Please try again.");
+      setError("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: "easeOut" as any} },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: { delay: i * 0.2, duration: 0.5 },
+    }),
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex items-center justify-center p-4 sm:p-6 font-sans">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="bg-white rounded-lg shadow-lg p-10 w-full max-w-sm border border-gray-200"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="bg-white rounded-xl shadow-2xl p-8 sm:p-10 w-full max-w-md border border-blue-100"
       >
+        <div className="flex justify-center mb-6">
+          <School className="h-12 w-12 text-blue-600" />
+        </div>
         <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-2xl font-semibold text-center text-gray-900 mb-8"
+          custom={0}
+          variants={itemVariants}
+          className="text-3xl font-bold text-center text-blue-800 mb-8"
         >
-          Sign In
+          Masuk ke TPA Al-Hidayah
         </motion.h2>
 
         <AnimatePresence>
@@ -92,40 +120,33 @@ const Login: React.FC = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-gray-100 text-gray-700 p-3 rounded-md mb-6 text-center text-sm"
+              className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md mb-6 text-center text-sm text-red-700 flex items-center justify-center gap-2"
             >
+              <XCircle className="h-5 w-5" />
               {error}
             </motion.div>
           )}
         </AnimatePresence>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
+          <motion.div custom={1} variants={itemVariants}>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              email
+              Email
             </label>
             <input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setemail(e.target.value)}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all duration-300"
-              placeholder="Enter your email"
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all duration-300 shadow-sm"
+              placeholder="Masukkan email Anda"
               disabled={isLoading}
             />
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
+          <motion.div custom={2} variants={itemVariants}>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
+              Kata Sandi
             </label>
             <div className="relative">
               <input
@@ -133,71 +154,73 @@ const Login: React.FC = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all duration-300"
-                placeholder="Enter your password"
+                className="mt-1 w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all duration-300 shadow-sm"
+                placeholder="Masukkan kata sandi Anda"
                 disabled={isLoading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 text-sm"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-blue-600 hover:text-blue-800"
                 disabled={isLoading}
               >
-                {showPassword ? "Hide" : "Show"}
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </motion.div>
 
           <motion.button
             type="submit"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="w-full bg-gray-900 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center"
+            custom={3}
+            variants={itemVariants}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg shadow-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center ${
+              isLoading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
             disabled={isLoading}
           >
             {isLoading ? (
-              <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
-                ></path>
-              </svg>
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
+                  ></path>
+                </svg>
+                Memproses...
+              </>
             ) : (
-              "Sign In"
+              "Masuk"
             )}
-            {isLoading && "Signing in..."}
           </motion.button>
         </form>
 
         <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
+          custom={4}
+          variants={itemVariants}
           className="mt-6 text-center text-sm text-gray-600"
         >
-          Don’t have an account?{" "}
+          Belum punya akun?{" "}
           <a
             href="/register"
-            className="text-gray-900 hover:underline font-medium"
+            className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
           >
-            Sign up
+            Daftar
           </a>
         </motion.p>
       </motion.div>

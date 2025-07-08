@@ -26,7 +26,7 @@ const SubjectControllerEdit = () => {
   const [editSubjectName, setEditSubjectName] = useState("");
   const [editSubjectError, setEditSubjectError] = useState(null);
   const [detailModal, setDetailModal] = useState(false);
-  const [deleteModal, setDeleteModal] = useState(false);
+  // const [deleteModal, setDeleteModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(10);
@@ -37,7 +37,7 @@ const SubjectControllerEdit = () => {
 
   useEffect(() => {
     fetchSubjectData();
-  }, [currentPage, pageSize, searchQuery]);
+  }, [currentPage, pageSize, searchQuery, sortOrder]);
 
   const fetchSubjectData = async () => {
     const token = Cookies.get("authToken");
@@ -48,6 +48,7 @@ const SubjectControllerEdit = () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
+        sortOrder: sortOrder,
       });
 
       if (searchQuery.trim()) {
@@ -179,46 +180,46 @@ const SubjectControllerEdit = () => {
     }
   };
 
-  const handleDeleteSubject = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = Cookies.get("authToken");
-      const response = await fetch(
-        `http://localhost:8080/api/subjects/${selectedSubject.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  // const handleDeleteSubject = async () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const token = Cookies.get("authToken");
+  //     const response = await fetch(
+  //       `http://localhost:8080/api/subjects/${selectedSubject.id}`,
+  //       {
+  //         method: "DELETE",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
+  //     if (!response.ok) {
+  //       const errorData = await response.json();
+  //       throw new Error(
+  //         errorData.message || `HTTP error! status: ${response.status}`
+  //       );
+  //     }
 
-      alert("Berhasil menghapus mata pelajaran");
-      setDeleteModal(false);
-      setSelectedSubject(null);
-      if (subjectData.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        fetchSubjectData();
-      }
-    } catch (error) {
-      console.error("Error deleting subject:", error);
-      setError(
-        error.message || "Gagal menghapus mata pelajaran. Silakan coba lagi."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     alert("Berhasil menghapus mata pelajaran");
+  //     setDeleteModal(false);
+  //     setSelectedSubject(null);
+  //     if (subjectData.length === 1 && currentPage > 1) {
+  //       setCurrentPage(currentPage - 1);
+  //     } else {
+  //       fetchSubjectData();
+  //     }
+  //   } catch (error) {
+  //     console.error("Error deleting subject:", error);
+  //     setError(
+  //       error.message || "Gagal menghapus mata pelajaran. Silakan coba lagi."
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -257,16 +258,16 @@ const SubjectControllerEdit = () => {
     setDetailModal(true);
   };
 
-  const openDeleteModal = (subject) => {
-    setSelectedSubject(subject);
-    setDeleteModal(true);
-  };
+  // const openDeleteModal = (subject) => {
+  //   setSelectedSubject(subject);
+  //   setDeleteModal(true);
+  // };
 
   const closeAllModals = () => {
     setNewSubjectModal(false);
     setEditSubjectModal(false);
     setDetailModal(false);
-    setDeleteModal(false);
+    // setDeleteModal(false);
     setSelectedSubject(null);
     setEditSubjectName("");
     setNewSubjectName("");
@@ -453,14 +454,14 @@ const SubjectControllerEdit = () => {
                           >
                             <Edit className="w-5 h-5" />
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => openDeleteModal(subject)}
                             className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
                             title="Hapus"
                             aria-label="Hapus mata pelajaran"
                           >
                             <Trash2 className="w-5 h-5" />
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => openDetailModal(subject)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
@@ -732,7 +733,7 @@ const SubjectControllerEdit = () => {
           </div>
         )}
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Confirmation Modal
         {deleteModal && selectedSubject && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
@@ -788,7 +789,7 @@ const SubjectControllerEdit = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </>
   );

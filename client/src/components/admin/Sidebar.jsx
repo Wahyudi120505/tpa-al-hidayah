@@ -12,6 +12,7 @@ import {
   X,
   LogOut,
   ScrollText,
+  School,
 } from "lucide-react";
 
 const Sidebar = ({ menuActive }) => {
@@ -104,7 +105,7 @@ const Sidebar = ({ menuActive }) => {
         <div className="flex items-center justify-between p-6 border-b border-emerald-700">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <ScrollText className="w-6 h-6 text-emerald-800" />
+              <School className="w-8 h-8 text-emerald-800" />
             </div>
             <div>
               <h1 className="text-xl font-bold">Admin Panel</h1>
