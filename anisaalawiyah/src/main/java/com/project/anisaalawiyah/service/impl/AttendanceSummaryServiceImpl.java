@@ -24,6 +24,7 @@ public class AttendanceSummaryServiceImpl implements AttendanceSummaryService {
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
 
+    @SuppressWarnings("deprecation")
     @Override
     public ResponseAttendanceSummary getMonthlyAttendanceSummary(Long studentId, int month, int year) {
     
