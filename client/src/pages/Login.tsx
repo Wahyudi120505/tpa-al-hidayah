@@ -65,7 +65,7 @@ const Login: React.FC = () => {
         if (user.role === "ADMIN") {
           navigate("/admin");
         } else if (user.role === "PARENT") {
-          navigate("/parent/home-parent");
+          navigate("/parent");
         } else {
           navigate("/");
         }
