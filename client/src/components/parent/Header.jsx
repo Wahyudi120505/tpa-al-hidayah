@@ -71,7 +71,7 @@ const Header = () => {
 
   const navItems = [
     {
-      path: "home-parent",
+      path: "",
       label: "Home",
       icon: (
         <Home className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />

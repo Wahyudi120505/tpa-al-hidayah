@@ -83,7 +83,7 @@ const router = createBrowserRouter([
         element: <ParentLayout />,
         children:[
           {
-            path:"home-parent",
+            path:"",
             element:<HomepageParent />
           },
           {

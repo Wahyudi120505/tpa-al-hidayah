@@ -15,15 +15,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
-
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -44,20 +40,19 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
 
-    Claims claims = jwtUtil.resolveClaims(request);
-if (claims != null && jwtUtil.validateClaims(claims)) {
-    String email = claims.getSubject();
-    String role = claims.get("role", String.class); 
+            Claims claims = jwtUtil.resolveClaims(request);
+            if (claims != null && jwtUtil.validateClaims(claims)) {
+                String email = claims.getSubject();
+                String role = claims.get("role", String.class);
 
-    List<GrantedAuthority> authorities = Collections.singletonList(
-        new SimpleGrantedAuthority("ROLE_" + role)
-    );
+                List<GrantedAuthority> authorities = Collections.singletonList(
+                        new SimpleGrantedAuthority("ROLE_" + role));
 
-    Authentication authentication = new UsernamePasswordAuthenticationToken(
-        email, "", authorities);
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        email, "", authorities);
 
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-}
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         } catch (Exception e) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -65,7 +60,5 @@ if (claims != null && jwtUtil.validateClaims(claims)) {
         }
         filterChain.doFilter(request, response);
     }
-
-    
 
 }
