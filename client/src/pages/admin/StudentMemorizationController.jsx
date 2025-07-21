@@ -62,11 +62,12 @@ const StudentMemorizationController = () => {
   const [surahs, setSurahs] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMemorizationId, setSelectedMemorizationId] = useState(null);
+  const [classLevelFilter, setClassLevelFilter] = useState("");
   const [form, setForm] = useState({
     status: "",
     updatedAt: new Date().toISOString().split("T")[0],
     studentId: "",
-    surahId: "",
+    surahIds: [], // Changed to array for multiple surahs
   });
   const [formError, setFormError] = useState(null);
 
@@ -76,10 +77,19 @@ const StudentMemorizationController = () => {
   const debouncedEndUpdatedAt = useDebounce(endUpdatedAt, 500);
   const debouncedStatus = useDebounce(status, 500);
 
-  const studentOptions = students.map((student) => ({
-    value: student.id,
-    label: `${student.name}`,
-  }));
+  // Filter student options based on classLevelFilter
+  const studentOptions = students
+    .filter(
+      (student) => !classLevelFilter || student.classLevel === classLevelFilter
+    )
+    .map((student) => ({
+      value: student.id,
+      label: `${student.name} (Kelas ${student.classLevel || "-"})`,
+    }));
+
+  const classLevels = [
+    ...new Set(students.map((student) => student.classLevel).filter(Boolean)),
+  ].sort();
 
   const surahOptions = surahs.map((surah) => ({
     value: surah.id,
@@ -126,7 +136,7 @@ const StudentMemorizationController = () => {
         page: currentPage.toString(),
         size: pageSize.toString(),
         sortOrder: sortOrder,
-        sortBy: "id", // Ensure sortBy matches backend expectation
+        sortBy: "id",
       });
 
       if (debouncedSearchQuery) {
@@ -246,14 +256,14 @@ const StudentMemorizationController = () => {
   const handleShowEditModal = (e) => {
     setSelectedMemorizationId(e.id);
     setForm({
-      id: e.id || "",
       status: e.status || "",
       studentId: e.responseStudent.id,
       updatedAt: e.updatedAt
         ? new Date(e.updatedAt).toISOString().split("T")[0]
         : new Date().toISOString().split("T")[0],
-      surahId: e.responseSurah.id,
+      surahIds: [e.responseSurah.id], // Single surah for edit
     });
+    setClassLevelFilter(e.responseStudent?.classLevel || "");
     setFormError(null);
     setShowEditModal(true);
   };
@@ -267,9 +277,46 @@ const StudentMemorizationController = () => {
     setFormError(null);
   };
 
+  const handleStatusChange = (selectedStatus) => {
+    setForm((prev) => ({
+      ...prev,
+      status: prev.status === selectedStatus ? "" : selectedStatus,
+    }));
+    setFormError(null);
+  };
+
+  const handleSurahChange = (surahId) => {
+    setForm((prev) => {
+      const isSelected = prev.surahIds.includes(surahId);
+      const newSurahIds = isSelected
+        ? prev.surahIds.filter((id) => id !== surahId)
+        : [...prev.surahIds, surahId];
+      return { ...prev, surahIds: newSurahIds };
+    });
+    setFormError(null);
+  };
+
+  const handleClassLevelFilterChange = (e) => {
+    const selectedClass = e.target.value;
+    setClassLevelFilter(selectedClass);
+
+    if (form.studentId) {
+      const selectedStudent = students.find(
+        (student) => student.id === Number(form.studentId)
+      );
+      if (
+        selectedStudent &&
+        selectedStudent.classLevel !== selectedClass &&
+        selectedClass !== ""
+      ) {
+        setForm((prev) => ({ ...prev, studentId: "" }));
+      }
+    }
+  };
+
   const handleEdit = async (e) => {
     e.preventDefault();
-    if (!form.status || !form.studentId || !form.surahId) {
+    if (!form.status || !form.studentId || !form.surahIds.length) {
       setFormError("Semua field wajib diisi");
       return;
     }
@@ -290,9 +337,10 @@ const StudentMemorizationController = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            ...form,
+            status: form.status,
             studentId: Number(form.studentId),
-            surahId: Number(form.surahId),
+            surahId: Number(form.surahIds[0]), // Single surah for edit
+            updatedAt: form.updatedAt,
           }),
         }
       );
@@ -303,8 +351,9 @@ const StudentMemorizationController = () => {
           status: "",
           updatedAt: new Date().toISOString().split("T")[0],
           studentId: "",
-          surahId: "",
+          surahIds: [],
         });
+        setClassLevelFilter("");
         setShowEditModal(false);
         setSelectedMemorizationId(null);
         fetchData();
@@ -325,7 +374,7 @@ const StudentMemorizationController = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.status || !form.studentId || !form.surahId) {
+    if (!form.status || !form.studentId || !form.surahIds.length) {
       setFormError("Semua field wajib diisi");
       return;
     }
@@ -337,39 +386,50 @@ const StudentMemorizationController = () => {
         throw new Error("Token autentikasi tidak ditemukan.");
       }
 
-      const response = await fetch(
-        "http://localhost:8080/api/student-memorization-status",
-        {
+      const requests = form.surahIds.map((surahId) =>
+        fetch("http://localhost:8080/api/student-memorization-status", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            ...form,
-            updatedAt: new Date().toISOString().split("T")[0],
+            status: form.status,
+            updatedAt: form.updatedAt,
             studentId: Number(form.studentId),
-            surahId: Number(form.surahId),
+            surahId: Number(surahId),
           }),
-        }
+        })
       );
 
-      if (response.ok) {
-        alert("Berhasil menambah setoran hafalan");
-        setForm({
-          status: "",
-          updatedAt: new Date().toISOString().split("T")[0],
-          studentId: "",
-          surahId: "",
-        });
-        setNewMemorizationModal(false);
-        fetchData();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        setFormError(
-          errorData.message || `Gagal menambah setoran: HTTP ${response.status}`
+      const responses = await Promise.all(requests);
+      const errors = responses.filter((res) => !res.ok);
+
+      if (errors.length > 0) {
+        const errorData = await Promise.all(
+          errors.map((res) => res.json().catch(() => ({})))
         );
+        setFormError(
+          errorData
+            .map(
+              (err) =>
+                err.message || `Gagal menambah setoran: HTTP ${err.status}`
+            )
+            .join("; ")
+        );
+        return;
       }
+
+      alert("Berhasil menambah setoran hafalan");
+      setForm({
+        status: "",
+        updatedAt: new Date().toISOString().split("T")[0],
+        studentId: "",
+        surahIds: [],
+      });
+      setClassLevelFilter("");
+      setNewMemorizationModal(false);
+      fetchData();
     } catch (error) {
       console.error("Error saat mengirim data:", error);
       setFormError("Terjadi kesalahan server: " + error.message);
@@ -381,7 +441,6 @@ const StudentMemorizationController = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    // fetchData is triggered via useEffect with debounced values
   };
 
   const handleReset = () => {
@@ -389,10 +448,10 @@ const StudentMemorizationController = () => {
     setStartUpdatedAt("");
     setEndUpdatedAt("");
     setStatus("");
+    setClassLevelFilter("");
     setCurrentPage(1);
     setSortOrder("ASC");
     setPageSize(10);
-    // fetchData is triggered via useEffect
   };
 
   const handlePageChange = (newPage) => {
@@ -426,7 +485,17 @@ const StudentMemorizationController = () => {
               </p>
             </div>
             <button
-              onClick={() => setNewMemorizationModal(true)}
+              onClick={() => {
+                setNewMemorizationModal(true);
+                setForm({
+                  status: "",
+                  updatedAt: new Date().toISOString().split("T")[0],
+                  studentId: "",
+                  surahIds: [],
+                });
+                setClassLevelFilter("");
+                setFormError(null);
+              }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
               disabled={loading || filterLoading}
             >
@@ -452,6 +521,7 @@ const StudentMemorizationController = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cari berdasarkan nama santri atau surah..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    disabled={loading || filterLoading}
                   />
                 </div>
               </div>
@@ -817,7 +887,17 @@ const StudentMemorizationController = () => {
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
-                onClick={() => setNewMemorizationModal(false)}
+                onClick={() => {
+                  setNewMemorizationModal(false);
+                  setForm({
+                    status: "",
+                    updatedAt: new Date().toISOString().split("T")[0],
+                    studentId: "",
+                    surahIds: [],
+                  });
+                  setClassLevelFilter("");
+                  setFormError(null);
+                }}
                 aria-label="Tutup modal"
               >
                 <X className="w-6 h-6" />
@@ -837,24 +917,24 @@ const StudentMemorizationController = () => {
                 <div className="space-y-4">
                   <div>
                     <label
-                      htmlFor="status"
-                      className="block text-sm font-medium text-gray-700"
+                      htmlFor="classLevelFilter"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Status
+                      Filter Kelas
                     </label>
                     <select
-                      id="status"
-                      name="status"
-                      value={form.status}
-                      onChange={handleChange}
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={handleClassLevelFilterChange}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
                       disabled={loading}
                     >
-                      <option value="">Pilih Status</option>
-                      <option value="SUDAH_HAFAL">Sudah Hafal</option>
-                      <option value="BELUM_HAFAL">Belum Hafal</option>
-                      <option value="MENGULANG">Mengulang</option>
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -884,43 +964,97 @@ const StudentMemorizationController = () => {
                       className="react-select-container"
                       classNamePrefix="react-select"
                       isDisabled={loading}
+                      required
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <div className="flex flex-wrap gap-4">
+                      {["SUDAH_HAFAL", "BELUM_HAFAL", "MENGULANG"].map(
+                        (status) => (
+                          <label
+                            key={status}
+                            className="flex items-center space-x-2"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={form.status === status}
+                              onChange={() => handleStatusChange(status)}
+                              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                              disabled={loading}
+                            />
+                            <span className="text-sm">
+                              {status === "SUDAH_HAFAL"
+                                ? "Sudah Hafal"
+                                : status === "BELUM_HAFAL"
+                                ? "Belum Hafal"
+                                : "Mengulang"}
+                            </span>
+                          </label>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  <div>
                     <label
-                      htmlFor="surahId"
+                      htmlFor="updatedAt"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
+                      Tanggal Update
+                    </label>
+                    <input
+                      type="date"
+                      id="updatedAt"
+                      name="updatedAt"
+                      value={form.updatedAt}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Surah
                     </label>
-                    <Select
-                      inputId="surahId"
-                      name="surahId"
-                      options={surahOptions}
-                      onChange={(selectedOption) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          surahId: selectedOption?.value || "",
-                        }))
-                      }
-                      value={
-                        surahOptions.find(
-                          (opt) => opt.value === form.surahId
-                        ) || null
-                      }
-                      placeholder="Pilih Surah..."
-                      isClearable
-                      className="react-select-container"
-                      classNamePrefix="react-select"
-                      isDisabled={loading}
-                    />
+                    <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                      {surahs.map((surah) => (
+                        <label
+                          key={surah.id}
+                          className="flex items-center space-x-2 mb-2"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.surahIds.includes(surah.id)}
+                            onChange={() => handleSurahChange(surah.id)}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                            disabled={loading}
+                          />
+                          <span className="text-sm">
+                            {surah.name} (Surah {surah.number})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                    onClick={() => setNewMemorizationModal(false)}
+                    onClick={() => {
+                      setNewMemorizationModal(false);
+                      setForm({
+                        status: "",
+                        updatedAt: new Date().toISOString().split("T")[0],
+                        studentId: "",
+                        surahIds: [],
+                      });
+                      setClassLevelFilter("");
+                      setFormError(null);
+                    }}
                     disabled={loading}
                   >
                     Batal
@@ -956,8 +1090,10 @@ const StudentMemorizationController = () => {
                     status: "",
                     updatedAt: new Date().toISOString().split("T")[0],
                     studentId: "",
-                    surahId: "",
+                    surahIds: [],
                   });
+                  setClassLevelFilter("");
+                  setFormError(null);
                 }}
                 aria-label="Tutup Modal"
               >
@@ -980,24 +1116,24 @@ const StudentMemorizationController = () => {
                 <div className="space-y-4">
                   <div>
                     <label
-                      htmlFor="status"
-                      className="block text-sm font-medium text-gray-700"
+                      htmlFor="classLevelFilter"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Status
+                      Filter Kelas
                     </label>
                     <select
-                      id="status"
-                      name="status"
-                      value={form.status}
-                      onChange={handleChange}
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={handleClassLevelFilterChange}
                       className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      required
                       disabled={loading}
                     >
-                      <option value="">Pilih Status</option>
-                      <option value="SUDAH_HAFAL">Sudah Hafal</option>
-                      <option value="BELUM_HAFAL">Belum Hafal</option>
-                      <option value="MENGULANG">Mengulang</option>
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1027,13 +1163,59 @@ const StudentMemorizationController = () => {
                       className="react-select-container"
                       classNamePrefix="react-select"
                       isDisabled={loading}
+                      required
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <div className="flex flex-wrap gap-4">
+                      {["SUDAH_HAFAL", "BELUM_HAFAL", "MENGULANG"].map(
+                        (status) => (
+                          <label
+                            key={status}
+                            className="flex items-center space-x-2"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={form.status === status}
+                              onChange={() => handleStatusChange(status)}
+                              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                              disabled={loading}
+                            />
+                            <span className="text-sm">
+                              {status === "SUDAH_HAFAL"
+                                ? "Sudah Hafal"
+                                : status === "BELUM_HAFAL"
+                                ? "Belum Hafal"
+                                : "Mengulang"}
+                            </span>
+                          </label>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  <div>
                     <label
-                      htmlFor="surahId"
+                      htmlFor="updatedAt"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
+                      Tanggal Update
+                    </label>
+                    <input
+                      type="date"
+                      id="updatedAt"
+                      name="updatedAt"
+                      value={form.updatedAt}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Surah
                     </label>
                     <Select
@@ -1043,12 +1225,14 @@ const StudentMemorizationController = () => {
                       onChange={(selectedOption) =>
                         setForm((prev) => ({
                           ...prev,
-                          surahId: selectedOption?.value || "",
+                          surahIds: selectedOption?.value
+                            ? [selectedOption.value]
+                            : [],
                         }))
                       }
                       value={
-                        surahOptions.find(
-                          (opt) => opt.value === form.surahId
+                        surahOptions.find((opt) =>
+                          form.surahIds.includes(opt.value)
                         ) || null
                       }
                       placeholder="Pilih Surah..."
@@ -1056,6 +1240,7 @@ const StudentMemorizationController = () => {
                       className="react-select-container"
                       classNamePrefix="react-select"
                       isDisabled={loading}
+                      required
                     />
                   </div>
                 </div>
@@ -1070,8 +1255,10 @@ const StudentMemorizationController = () => {
                         status: "",
                         updatedAt: new Date().toISOString().split("T")[0],
                         studentId: "",
-                        surahId: "",
+                        surahIds: [],
                       });
+                      setClassLevelFilter("");
+                      setFormError(null);
                     }}
                     disabled={loading}
                   >

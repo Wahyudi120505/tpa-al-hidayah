@@ -34,7 +34,6 @@ const GradeController = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortOrder, setSortOrder] = useState("DESC");
-  // const [showFilters, setShowFilters] = useState(false);
   const [newGradeModal, setNewGradeModal] = useState(false);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
@@ -43,6 +42,7 @@ const GradeController = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(1);
+  const [classLevelFilter, setClassLevelFilter] = useState(""); // New state for class filter
   const [form, setForm] = useState({
     semester: "",
     academicYear: "",
@@ -57,7 +57,6 @@ const GradeController = () => {
     setError(null);
 
     try {
-      // Fetch grades
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -142,15 +141,20 @@ const GradeController = () => {
     }
   }, [subjects]);
 
-  const studentOptions = students.map((student) => ({
-    value: student.id,
-    label: `${student.name}`,
-  }));
+  // Filter student options based on classLevelFilter
+  const studentOptions = students
+    .filter((student) => !classLevelFilter || student.classLevel === classLevelFilter)
+    .map((student) => ({
+      value: student.id,
+      label: `${student.name} (Kelas ${student.classLevel || "-"})`,
+    }));
 
   const subjectOptions = subjects.map((subject) => ({
     value: subject.id,
     label: `${subject.name}`,
   }));
+
+  const classLevels = [...new Set(students.map((student) => student.classLevel).filter(Boolean))].sort();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -169,6 +173,21 @@ const GradeController = () => {
       ),
     }));
     setFormError(null);
+  };
+
+  // Handle class level filter change and reset studentId if necessary
+  const handleClassLevelFilterChange = (e) => {
+    const selectedClass = e.target.value;
+    setClassLevelFilter(selectedClass);
+
+    if (form.studentId) {
+      const selectedStudent = students.find(
+        (student) => student.id === Number(form.studentId)
+      );
+      if (selectedStudent && selectedStudent.classLevel !== selectedClass && selectedClass !== "") {
+        setForm((prev) => ({ ...prev, studentId: "" }));
+      }
+    }
   };
 
   const handleNextSlide = () => {
@@ -245,6 +264,7 @@ const GradeController = () => {
       });
       setNewGradeModal(false);
       setCurrentSlide(1);
+      setClassLevelFilter("");
       fetchData();
     } catch (error) {
       console.error("Error saat mengirim data:", error);
@@ -280,11 +300,12 @@ const GradeController = () => {
     setSelectedGradeId(grade.id);
     setForm({
       semester: grade.semester || "",
-      score: grade.score ? grade.score : "",
+      score: grade.score ? grade.score.toString() : "", // Convert to string for input
       academicYear: grade.academicYear || "",
       studentId: grade.responseStudent?.id ? grade.responseStudent.id : "",
       subjectId: grade.responseSubject?.id ? grade.responseSubject.id : "",
     });
+    setClassLevelFilter(grade.responseStudent?.classLevel || "");
     setFormError(null);
     setShowEditModal(true);
   };
@@ -294,7 +315,7 @@ const GradeController = () => {
 
     if (
       !form.semester ||
-      !form.scores ||
+      !form.score ||
       !form.academicYear ||
       !form.studentId ||
       !form.subjectId
@@ -303,7 +324,7 @@ const GradeController = () => {
       return;
     }
 
-    if (isNaN(form.scores) || form.scores < 0 || form.scores > 100) {
+    if (isNaN(form.score) || form.score < 0 || form.score > 100) {
       setFormError("Nilai harus antara 0 dan 100");
       return;
     }
@@ -341,6 +362,7 @@ const GradeController = () => {
         });
         setShowEditModal(false);
         setSelectedGradeId(null);
+        setClassLevelFilter("");
         setFormError(null);
         fetchData();
       } else {
@@ -392,7 +414,21 @@ const GradeController = () => {
               </p>
             </div>
             <button
-              onClick={() => setNewGradeModal(true)}
+              onClick={() => {
+                setNewGradeModal(true);
+                setCurrentSlide(1);
+                setForm({
+                  semester: "",
+                  academicYear: "",
+                  studentId: "",
+                  scores: subjects.map((subject) => ({
+                    subjectId: subject.id,
+                    score: "",
+                  })),
+                });
+                setClassLevelFilter("");
+                setFormError(null);
+              }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -710,6 +746,7 @@ const GradeController = () => {
                       score: "",
                     })),
                   });
+                  setClassLevelFilter("");
                   setFormError(null);
                 }}
                 aria-label="Tutup modal"
@@ -737,6 +774,27 @@ const GradeController = () => {
                   <div className="space-y-4">
                     <div>
                       <label
+                        htmlFor="classLevelFilter"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Filter Kelas
+                      </label>
+                      <select
+                        id="classLevelFilter"
+                        value={classLevelFilter}
+                        onChange={handleClassLevelFilterChange}
+                        className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      >
+                        <option value="">Semua Kelas</option>
+                        {classLevels.map((level) => (
+                          <option key={level} value={level}>
+                            Kelas {level}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
                         htmlFor="studentId"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
@@ -761,6 +819,7 @@ const GradeController = () => {
                         isClearable
                         className="react-select-container"
                         classNamePrefix="react-select"
+                        required
                       />
                     </div>
                     <div>
@@ -867,6 +926,7 @@ const GradeController = () => {
                             score: "",
                           })),
                         });
+                        setClassLevelFilter("");
                         setFormError(null);
                       }}
                     >
@@ -907,7 +967,20 @@ const GradeController = () => {
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 scale-100">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setForm({
+                    semester: "",
+                    academicYear: "",
+                    studentId: "",
+                    scores: subjects.map((subject) => ({
+                      subjectId: subject.id,
+                      score: "",
+                    })),
+                  });
+                  setClassLevelFilter("");
+                  setFormError(null);
+                }}
                 aria-label="Tutup modal"
               >
                 <X className="w-6 h-6" />
@@ -926,6 +999,27 @@ const GradeController = () => {
                   </div>
                 )}
                 <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="classLevelFilter"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Filter Kelas
+                    </label>
+                    <select
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={handleClassLevelFilterChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    >
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label
                       htmlFor="studentId"
@@ -952,6 +1046,7 @@ const GradeController = () => {
                       isClearable
                       className="react-select-container"
                       classNamePrefix="react-select"
+                      required
                     />
                   </div>
                   <div>
@@ -980,6 +1075,7 @@ const GradeController = () => {
                       isClearable
                       className="react-select-container"
                       classNamePrefix="react-select"
+                      required
                     />
                   </div>
                   <div>
@@ -1047,7 +1143,20 @@ const GradeController = () => {
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                    onClick={() => setShowEditModal(false)}
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setForm({
+                        semester: "",
+                        academicYear: "",
+                        studentId: "",
+                        scores: subjects.map((subject) => ({
+                          subjectId: subject.id,
+                          score: "",
+                        })),
+                      });
+                      setClassLevelFilter("");
+                      setFormError(null);
+                    }}
                   >
                     Batal
                   </button>

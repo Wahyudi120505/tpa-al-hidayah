@@ -803,12 +803,12 @@ const SantriController = () => {
                       onChange={(selectedOption) =>
                         setForm((prev) => ({
                           ...prev,
-                          parentId: selectedOption?.value || "",
+                          parent_id: selectedOption?.value || "",
                         }))
                       }
                       value={
                         parentOptions.find(
-                          (opt) => opt.value === form.parent_id
+                          (opt) => opt.value == form.parent_id
                         ) || null
                       }
                       placeholder="Pilih Orang Tua..."

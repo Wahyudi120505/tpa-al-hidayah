@@ -43,10 +43,11 @@ const PaymentController = () => {
   const [students, setStudents] = useState([]);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
+  const [classLevelFilter, setClassLevelFilter] = useState("");
   const [form, setForm] = useState({
     studentId: "",
-    date: new Date().toISOString().split("T")[0], // Default to current date (YYYY-MM-DD)
-    paymentDate: new Date().toISOString().split("T")[0], // Default to current date (YYYY-MM-DD)
+    date: new Date().toISOString().split("T")[0],
+    paymentDate: new Date().toISOString().split("T")[0],
     status: "",
   });
   const [formError, setFormError] = useState(null);
@@ -69,25 +70,16 @@ const PaymentController = () => {
     setError(null);
 
     try {
-      // Fetch payments
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
         sortOrder: sortOrder,
       });
 
-      if (searchQuery.trim()) {
-        params.append("query", searchQuery.trim());
-      }
-      if (startDate) {
-        params.append("startDate", startDate);
-      }
-      if (endDate) {
-        params.append("endDate", endDate);
-      }
-      if (status) {
-        params.append("status", status);
-      }
+      if (searchQuery.trim()) params.append("query", searchQuery.trim());
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (status) params.append("status", status);
 
       const response = await fetch(
         `http://localhost:8080/api/payments?${params}`,
@@ -114,7 +106,6 @@ const PaymentController = () => {
       setTotalPages(jsonData.totalPages || 0);
       setTotalElements(jsonData.totalElements || 0);
 
-      // Fetch students for the dropdown
       const studentsResponse = await fetch(
         "http://localhost:8080/api/students?page=1&size=1000&sortOrder=ASC",
         {
@@ -138,17 +129,23 @@ const PaymentController = () => {
     }
   };
 
-  const studentOptions = students.map((student) => ({
-    value: student.id,
-    label: `${student.name}`,
-  }));
+  // Filter student options based on classLevelFilter
+  const studentOptions = students
+    .filter(
+      (student) => !classLevelFilter || student.classLevel === classLevelFilter
+    )
+    .map((student) => ({
+      value: student.id,
+      label: `${student.name} (Kelas ${student.classLevel || "-"})`,
+    }));
+
+  const classLevels = [
+    ...new Set(students.map((student) => student.classLevel).filter(Boolean)),
+  ].sort();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
     setFormError(null);
   };
 
@@ -161,6 +158,7 @@ const PaymentController = () => {
     });
     setEditPaymentId(payment.id);
     setEditPaymentModal(true);
+    setClassLevelFilter(payment.responseStudent?.classLevel || "");
     setFormError(null);
   };
 
@@ -208,6 +206,7 @@ const PaymentController = () => {
         setNewPaymentModal(false);
         setEditPaymentModal(false);
         setEditPaymentId(null);
+        setClassLevelFilter("");
         setFormError(null);
         fetchData();
       } else {
@@ -252,6 +251,26 @@ const PaymentController = () => {
     setInfoModal(true);
   };
 
+  // Handle class level filter change and reset studentId if necessary
+  const handleClassLevelFilterChange = (e) => {
+    const selectedClass = e.target.value;
+    setClassLevelFilter(selectedClass);
+
+    // Reset studentId if it doesn't match the selected class
+    if (form.studentId) {
+      const selectedStudent = students.find(
+        (student) => student.id === Number(form.studentId)
+      );
+      if (
+        selectedStudent &&
+        selectedStudent.classLevel !== selectedClass &&
+        selectedClass !== ""
+      ) {
+        setForm((prev) => ({ ...prev, studentId: "" }));
+      }
+    }
+  };
+
   return (
     <>
       <Sidebar menuActive={"spp"} />
@@ -274,6 +293,7 @@ const PaymentController = () => {
                   status: "",
                 });
                 setFormError(null);
+                setClassLevelFilter("");
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
             >
@@ -461,7 +481,7 @@ const PaymentController = () => {
                       Nama Santri
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tanggal
+                      Tanggal Pembayaran
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -544,7 +564,7 @@ const PaymentController = () => {
                           <button
                             onClick={() => handleShowInfo(item)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
-                            title="Delete"
+                            title="Detail"
                           >
                             <Info className="w-5 h-5" />
                           </button>
@@ -648,6 +668,7 @@ const PaymentController = () => {
                     status: "",
                   });
                   setFormError(null);
+                  setClassLevelFilter("");
                 }}
                 aria-label="Tutup modal"
               >
@@ -668,6 +689,27 @@ const PaymentController = () => {
                   </div>
                 )}
                 <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="classLevelFilter"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Filter Kelas
+                    </label>
+                    <select
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={handleClassLevelFilterChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    >
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label
                       htmlFor="studentId"
@@ -694,6 +736,23 @@ const PaymentController = () => {
                       isClearable
                       className="react-select-container"
                       classNamePrefix="react-select"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="paymentDate"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tanggal Pembayaran
+                    </label>
+                    <input
+                      type="date"
+                      id="paymentDate"
+                      name="paymentDate"
+                      value={form.paymentDate}
+                      onChange={handleChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
                     />
                   </div>
@@ -730,10 +789,11 @@ const PaymentController = () => {
                       setForm({
                         studentId: "",
                         date: new Date().toISOString().split("T")[0],
-                        paymentDate: new Date().toISOString().split("T")[0],
+                        paymentDate: "",
                         status: "",
                       });
                       setFormError(null);
+                      setClassLevelFilter("");
                     }}
                   >
                     Batal
@@ -771,6 +831,7 @@ const PaymentController = () => {
                     status: "",
                   });
                   setFormError(null);
+                  setClassLevelFilter("");
                 }}
                 aria-label="Tutup modal"
               >
@@ -790,6 +851,29 @@ const PaymentController = () => {
                     {formError}
                   </div>
                 )}
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="classLevelFilter"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Filter Kelas
+                    </label>
+                    <select
+                      id="classLevelFilter"
+                      value={classLevelFilter}
+                      onChange={handleClassLevelFilterChange}
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    >
+                      <option value="">Semua Kelas</option>
+                      {classLevels.map((level) => (
+                        <option key={level} value={level}>
+                          Kelas {level}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <label
@@ -858,6 +942,7 @@ const PaymentController = () => {
                         status: "",
                       });
                       setFormError(null);
+                      setClassLevelFilter("");
                     }}
                   >
                     Batal
@@ -933,7 +1018,9 @@ const PaymentController = () => {
                 <div className="flex items-center space-x-3">
                   <BadgeInfo className="mt-1 text-emerald-500" />
                   <div>
-                    <label className="text-xs uppercase text-gray-400">Status</label>
+                    <label className="text-xs uppercase text-gray-400">
+                      Status
+                    </label>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         detailInfoModal.status === "LUNAS"
