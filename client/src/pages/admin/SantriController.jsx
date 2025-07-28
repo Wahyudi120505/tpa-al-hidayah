@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
@@ -36,6 +36,7 @@ const SantriController = () => {
   const [tampIdParent, setTampIdParent] = useState([]);
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
+  const [isParentLoading, setIsParentLoading] = useState(true);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,7 +52,7 @@ const SantriController = () => {
     gender: "",
     birthDate: "",
     classLevel: "",
-    parent_id: 0,
+    parentId: 0,
   });
 
   useEffect(() => {
@@ -158,24 +159,10 @@ const SantriController = () => {
 
   const fetchParentData = async () => {
     try {
+      setIsParentLoading(true);
       const token = Cookies.get("authToken");
-
-      const resMeta = await fetch(
-        "http://localhost:8080/api/parents?page=1&size=1&sortOrder=ASC",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const meta = await resMeta.json();
-      const total = meta.totalElements || 1000;
-
       const response = await fetch(
-        `http://localhost:8080/api/parents?page=1&size=${total}&sortOrder=ASC`,
+        `http://localhost:8080/api/parents?page=1&size=1000&sortOrder=ASC`,
         {
           method: "GET",
           headers: {
@@ -184,18 +171,26 @@ const SantriController = () => {
           },
         }
       );
-
       const data = await response.json();
+      console.log("Raw API response:", JSON.stringify(data, null, 2));
+      console.log("Total parents:", data.totalElements);
+      console.log("Raw parent data:", data.content);
       setTampIdParent(data.content || []);
     } catch (error) {
       console.error("Error fetching parent data:", error);
-      return [];
+      setTampIdParent([]);
+    } finally {
+      setIsParentLoading(false);
     }
   };
 
   useEffect(() => {
     fetchParentData();
   }, []);
+
+  useEffect(() => {
+    console.log("tampIdParent updated:", JSON.stringify(tampIdParent, null, 2));
+  }, [tampIdParent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -221,6 +216,7 @@ const SantriController = () => {
           parentId: 0,
         });
         setNewSantriModal(false);
+        fetchData();
       } else {
         alert("Gagal mengirim data");
       }
@@ -240,7 +236,7 @@ const SantriController = () => {
         ? new Date(student.birthDate).toISOString().split("T")[0]
         : "",
       classLevel: student.classLevel || "",
-      parent_id: student.responeParent.id,
+      parentId: student.responeParent?.id || 0,
     });
     setShowEditModal(true);
   };
@@ -269,11 +265,11 @@ const SantriController = () => {
           gender: "",
           birthDate: "",
           classLevel: "",
-          parent_id: 0,
+          parentId: 0,
         });
         setShowEditModal(false);
         setSelectedStudentId(null);
-        fetchData(); // Refresh the data after successful edit
+        fetchData();
       } else {
         const errorData = await response.json();
         alert(
@@ -286,11 +282,40 @@ const SantriController = () => {
     }
   };
 
-  const parentOptions = tampIdParent.map((parent) => ({
-    value: parent.id,
-    label: `${parent.name}`,
-  }));
-  console.log(tampIdParent);
+  const parentOptions = useMemo(() => {
+    const options = tampIdParent
+      .filter((parent) => {
+        const hasValidId = parent.id || parent.parentId;
+        if (!hasValidId) {
+          console.warn("Parent with missing id/parentId:", parent);
+          return false;
+        }
+        return true;
+      })
+      .map((parent, index) => {
+        const value = (parent.id || parent.parentId).toString();
+        const label = parent.name
+          ? `${parent.name}`
+          : `Parent ${index + 1}`;
+        return {
+          value,
+          label,
+        };
+      });
+
+    const valueSet = new Set(options.map((opt) => opt.value));
+    const labelSet = new Set(options.map((opt) => opt.label));
+    if (valueSet.size !== options.length) {
+      console.warn("Duplicate values detected in parentOptions:", options);
+    }
+    if (labelSet.size !== options.length) {
+      console.warn("Duplicate labels detected in parentOptions:", options);
+    }
+
+    console.log("Generated parentOptions:", JSON.stringify(options, null, 2));
+    console.log("Number of parentOptions:", options.length);
+    return options;
+  }, [tampIdParent]);
 
   const handleClick = async (id) => {
     try {
@@ -311,7 +336,6 @@ const SantriController = () => {
       setDetailInfoModal(jsonData);
       setInfoModal(true);
     } catch (error) {
-      // alert("ini " + detailInfoModal);
       console.error("Gagal mengambil detail data:", error);
     }
   };
@@ -566,9 +590,9 @@ const SantriController = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            item.gender === "L" || item.gender === "L"
+                            item.gender === "L"
                               ? "bg-blue-100 text-blue-800"
-                              : item.gender === "P" || item.gender === "P"
+                              : item.gender === "P"
                               ? "bg-pink-100 text-pink-800"
                               : "bg-gray-100 text-gray-800"
                           }`}
@@ -602,7 +626,7 @@ const SantriController = () => {
                           <button
                             onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
-                            title="Delete"
+                            title="Detail"
                           >
                             <Info className="w-5 h-5" />
                           </button>
@@ -692,7 +716,6 @@ const SantriController = () => {
             aria-labelledby="modal-title"
           >
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
-              {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
                 onClick={() => setNewSantriModal(false)}
@@ -701,7 +724,6 @@ const SantriController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Modal Header */}
               <h2
                 id="modal-title"
                 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
@@ -709,7 +731,6 @@ const SantriController = () => {
                 Tambah Santri
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
@@ -803,28 +824,38 @@ const SantriController = () => {
                       onChange={(selectedOption) =>
                         setForm((prev) => ({
                           ...prev,
-                          parent_id: selectedOption?.value || "",
+                          parentId: selectedOption?.value || "",
                         }))
                       }
                       value={
                         parentOptions.find(
-                          (opt) => opt.value == form.parent_id
+                          (opt) => opt.value === form.parentId.toString()
                         ) || null
                       }
-                      placeholder="Pilih Orang Tua..."
+                      placeholder={
+                        isParentLoading
+                          ? "Memuat orang tua..."
+                          : parentOptions.length === 0
+                          ? "Tidak ada orang tua tersedia"
+                          : `Pilih Orang Tua... (${parentOptions.length} opsi)`
+                      }
                       isClearable
+                      isDisabled={isParentLoading}
                       className="react-select-container"
                       classNamePrefix="react-select"
+                      key={`parent-select-${tampIdParent.length}`} // Force re-render
                     />
                   </div>
                 </div>
 
-                {/* Modal Footer */}
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                     onClick={() => setNewSantriModal(false)}
+                    disabled={isParentLoading}
+                    className={`bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors ${
+                      isParentLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
                     Batal
                   </button>
@@ -839,11 +870,10 @@ const SantriController = () => {
               </form>
             </div>
           </div>
-        )}{" "}
+        )}
         {showEditModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
-              {/* Tombol Tutup */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
                 onClick={() => {
@@ -855,7 +885,7 @@ const SantriController = () => {
                     gender: "",
                     birthDate: "",
                     classLevel: "",
-                    parent_id: 0,
+                    parentId: 0,
                   });
                 }}
                 aria-label="Tutup Modal"
@@ -863,12 +893,10 @@ const SantriController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Judul */}
               <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
                 Edit Data Santri
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleEdit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -936,6 +964,43 @@ const SantriController = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label
+                    htmlFor="parentId"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Parent
+                  </label>
+                  <Select
+                    inputId="parentId"
+                    name="parentId"
+                    options={parentOptions}
+                    onChange={(selectedOption) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        parentId: selectedOption?.value || "",
+                      }))
+                    }
+                    value={
+                      parentOptions.find(
+                        (opt) => opt.value === form.parentId.toString()
+                      ) || null
+                    }
+                    placeholder={
+                      isParentLoading
+                        ? "Memuat orang tua..."
+                        : parentOptions.length === 0
+                        ? "Tidak ada orang tua tersedia"
+                        : `Pilih Orang Tua... (${parentOptions.length} opsi)`
+                    }
+                    isClearable
+                    isDisabled={isParentLoading}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    key={`parent-select-edit-${tampIdParent.length}`} // Force re-render
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
@@ -950,7 +1015,6 @@ const SantriController = () => {
         {infoModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
             <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
-              {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
                 onClick={() => setInfoModal(false)}
@@ -959,12 +1023,10 @@ const SantriController = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Header */}
               <h2 className="text-3xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2">
                 <Users className="w-6 h-6" /> Detail Santri
               </h2>
 
-              {/* Detail Santri */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
@@ -1027,7 +1089,6 @@ const SantriController = () => {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="mt-8 flex justify-end space-x-4">
                 <button
                   className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
