@@ -252,7 +252,6 @@ const GradeController = () => {
         return;
       }
 
-      alert("Berhasil menambah semua nilai");
       setForm({
         semester: "",
         academicYear: "",
@@ -350,7 +349,6 @@ const GradeController = () => {
       );
 
       if (response.ok) {
-        alert("Berhasil memperbarui grade");
         setForm({
           semester: "",
           academicYear: "",

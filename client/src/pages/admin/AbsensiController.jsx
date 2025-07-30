@@ -29,6 +29,8 @@ const AbsensiController = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorEditModal, setErrorEditModal] = useState(null);
+  const [errorAddModal, setErrorAddModal] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [newAbsensiModal, setNewAbsensiModal] = useState(false);
@@ -167,62 +169,63 @@ const AbsensiController = () => {
     );
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const token = Cookies.get("authToken");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = Cookies.get("authToken");
 
-    const allStudentsHaveStatus = tampIdStudent.every((student) =>
-      attendanceData.some((entry) => entry.studentId === student.id && entry.status)
-    );
-
-    if (!allStudentsHaveStatus) {
-      alert("Semua santri wajib memiliki status absensi!");
-      return;
-    }
-
-    const validAttendances = attendanceData
-      .filter((item) => item.status)
-      .map((item) => ({
-        date: bulkDate,
-        status: item.status,
-        studentId: item.studentId,
-      }));
-
-    const responses = await Promise.all(
-      validAttendances.map((attendance) =>
-        fetch("http://localhost:8080/api/attendances", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(attendance),
-        })
-      )
-    );
-
-    const allSuccessful = responses.every((res) => res.ok);
-    if (allSuccessful) {
-      alert("Data absensi berhasil ditambahkan!");
-      setAttendanceData(
-        tampIdStudent.map((student) => ({
-          studentId: student.id,
-          status: "",
-        }))
+      const allStudentsHaveStatus = tampIdStudent.every((student) =>
+        attendanceData.some(
+          (entry) => entry.studentId === student.id && entry.status
+        )
       );
-      setBulkDate(today);
-      setClassLevelFilter("");
-      setNewAbsensiModal(false);
-      fetchData();
-    } else {
-      alert("Gagal menambahkan beberapa data absensi");
+
+      if (!allStudentsHaveStatus) {
+        setErrorAddModal("Semua santri wajib memiliki status absensi!");
+        return;
+      }
+
+      const validAttendances = attendanceData
+        .filter((item) => item.status)
+        .map((item) => ({
+          date: bulkDate,
+          status: item.status,
+          studentId: item.studentId,
+        }));
+
+      const responses = await Promise.all(
+        validAttendances.map((attendance) =>
+          fetch("http://localhost:8080/api/attendances", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(attendance),
+          })
+        )
+      );
+
+      const allSuccessful = responses.every((res) => res.ok);
+      if (allSuccessful) {
+        setAttendanceData(
+          tampIdStudent.map((student) => ({
+            studentId: student.id,
+            status: "",
+          }))
+        );
+        setBulkDate(today);
+        setClassLevelFilter("");
+        setNewAbsensiModal(false);
+        fetchData();
+      } else {
+        setErrorAddModal("Gagal menambahkan beberapa data absensi");
+      }
+    } catch (err) {
+      console.error("Error saat mengirim data:", err);
+      setErrorAddModal("Terjadi kesalahan server");
     }
-  } catch (err) {
-    console.error("Error saat mengirim data:", err);
-    alert("Terjadi kesalahan server");
-  }
-};
+  };
 
   const handleShowEditModal = (absensi) => {
     setSelectedAbsensiId(absensi.id);
@@ -258,7 +261,6 @@ const handleSubmit = async (e) => {
       );
 
       if (response.ok) {
-        alert("Data absensi berhasil diperbarui!");
         setForm({
           id: "",
           date: today,
@@ -270,13 +272,13 @@ const handleSubmit = async (e) => {
         fetchData();
       } else {
         const errorData = await response.json();
-        alert(
+        setErrorEditModal(
           `Gagal memperbarui data: ${errorData.message || "Unknown error"}`
         );
       }
     } catch (error) {
       console.error("Error updating absensi:", error);
-      alert("Gagal memperbarui data absensi");
+      setErrorEditModal("Gagal memperbarui data absensi");
     }
   };
 
@@ -752,6 +754,12 @@ const handleSubmit = async (e) => {
                 <X className="w-6 h-6" />
               </button>
 
+              {errorAddModal && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                  {errorAddModal}
+                </div>
+              )}
+
               <h2
                 id="modal-title"
                 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
@@ -902,11 +910,18 @@ const handleSubmit = async (e) => {
                     status: "",
                     student_id: 0,
                   });
+                  setErrorEditModal(null);
                 }}
                 aria-label="Tutup Modal"
               >
                 <X className="w-6 h-6" />
               </button>
+
+              {errorEditModal && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                  {errorEditModal}
+                </div>
+              )}
 
               <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
                 Edit Absensi
@@ -971,11 +986,12 @@ const handleSubmit = async (e) => {
                     isClearable
                     className="react-select-container"
                     classNamePrefix="react-select"
+                    required
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
                   disabled={loading}
                 >
                   {loading ? "Memuat..." : "Simpan Perubahan"}
@@ -983,7 +999,7 @@ const handleSubmit = async (e) => {
               </form>
             </div>
           </div>
-        )}
+        )}{" "}
         {/* Info Modal */}
         {infoModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">

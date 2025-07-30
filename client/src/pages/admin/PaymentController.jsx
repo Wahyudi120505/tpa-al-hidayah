@@ -192,11 +192,6 @@ const PaymentController = () => {
       });
 
       if (response.ok) {
-        alert(
-          editPaymentId
-            ? "Data pembayaran berhasil diperbarui!"
-            : "Data pembayaran berhasil ditambahkan!"
-        );
         setForm({
           studentId: "",
           date: new Date().toISOString().split("T")[0],

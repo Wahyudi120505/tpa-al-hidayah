@@ -120,7 +120,6 @@ const SubjectControllerEdit = () => {
         );
       }
 
-      alert("Berhasil menambah mata pelajaran");
       setNewSubjectName("");
       setNewSubjectModal(false);
       setCurrentPage(1);
@@ -165,7 +164,6 @@ const SubjectControllerEdit = () => {
         );
       }
 
-      alert("Berhasil memperbarui mata pelajaran");
       setEditSubjectModal(false);
       setSelectedSubject(null);
       setEditSubjectName("");
@@ -203,7 +201,6 @@ const SubjectControllerEdit = () => {
   //       );
   //     }
 
-  //     alert("Berhasil menghapus mata pelajaran");
   //     setDeleteModal(false);
   //     setSelectedSubject(null);
   //     if (subjectData.length === 1 && currentPage > 1) {

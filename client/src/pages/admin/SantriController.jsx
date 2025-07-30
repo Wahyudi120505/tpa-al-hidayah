@@ -37,6 +37,8 @@ const SantriController = () => {
   const [infoModal, setInfoModal] = useState(false);
   const [detailInfoModal, setDetailInfoModal] = useState({});
   const [isParentLoading, setIsParentLoading] = useState(true);
+  const [formErrors, setFormErrors] = useState({});
+  const [apiError, setApiError] = useState(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -155,6 +157,8 @@ const SantriController = () => {
       ...prev,
       [name]: value,
     }));
+    // Clear error when field is changed
+    setFormErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const fetchParentData = async () => {
@@ -192,8 +196,21 @@ const SantriController = () => {
     console.log("tampIdParent updated:", JSON.stringify(tampIdParent, null, 2));
   }, [tampIdParent]);
 
+  const validateForm = () => {
+    const errors = {};
+    if (!form.name) errors.name = "Nama wajib diisi";
+    if (!form.gender) errors.gender = "Gender wajib dipilih";
+    if (!form.classLevel) errors.classLevel = "Level kelas wajib dipilih";
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError(null);
+    
+    if (!validateForm()) return;
+
     try {
       const token = Cookies.get("authToken");
 
@@ -206,23 +223,23 @@ const SantriController = () => {
         body: JSON.stringify(form),
       });
 
-      if (response.ok) {
-        alert("Data santri berhasil ditambahkan!");
-        setForm({
-          name: "",
-          gender: "",
-          birthDate: "",
-          classLevel: "",
-          parentId: 0,
-        });
-        setNewSantriModal(false);
-        fetchData();
-      } else {
-        alert("Gagal mengirim data");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Gagal menambahkan santri");
       }
+
+      setForm({
+        name: "",
+        gender: "",
+        birthDate: "",
+        classLevel: "",
+        parentId: 0,
+      });
+      setNewSantriModal(false);
+      fetchData();
     } catch (err) {
       console.error("Error saat mengirim data:", err);
-      alert("Terjadi kesalahan server");
+      setApiError(err.message || "Terjadi kesalahan server");
     }
   };
 
@@ -243,6 +260,10 @@ const SantriController = () => {
 
   const handleEdit = async (e) => {
     e.preventDefault();
+    setApiError(null);
+    
+    if (!validateForm()) return;
+
     try {
       const token = Cookies.get("authToken");
       const response = await fetch(
@@ -257,28 +278,25 @@ const SantriController = () => {
         }
       );
 
-      if (response.ok) {
-        alert("Data santri berhasil diperbarui!");
-        setForm({
-          id: "",
-          name: "",
-          gender: "",
-          birthDate: "",
-          classLevel: "",
-          parentId: 0,
-        });
-        setShowEditModal(false);
-        setSelectedStudentId(null);
-        fetchData();
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        alert(
-          `Gagal memperbarui data: ${errorData.message || "Unknown error"}`
-        );
+        throw new Error(errorData.message || "Gagal memperbarui data");
       }
+
+      setForm({
+        id: "",
+        name: "",
+        gender: "",
+        birthDate: "",
+        classLevel: "",
+        parentId: 0,
+      });
+      setShowEditModal(false);
+      setSelectedStudentId(null);
+      fetchData();
     } catch (error) {
       console.error("Error updating student:", error);
-      alert("Gagal memperbarui data santri");
+      setApiError(error.message || "Gagal memperbarui data santri");
     }
   };
 
@@ -337,6 +355,7 @@ const SantriController = () => {
       setInfoModal(true);
     } catch (error) {
       console.error("Gagal mengambil detail data:", error);
+      setError("Gagal mengambil detail data santri");
     }
   };
 
@@ -731,6 +750,12 @@ const SantriController = () => {
                 Tambah Santri
               </h2>
 
+              {apiError && (
+                <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700">
+                  <p>{apiError}</p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
@@ -746,9 +771,16 @@ const SantriController = () => {
                       name="name"
                       value={form.name}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className={`mt-1 w-full border ${
+                        formErrors.name ? "border-red-500" : "border-gray-300"
+                      } rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none`}
                       required
                     />
+                    {formErrors.name && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -762,13 +794,20 @@ const SantriController = () => {
                       name="gender"
                       value={form.gender}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className={`mt-1 w-full border ${
+                        formErrors.gender ? "border-red-500" : "border-gray-300"
+                      } rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none`}
                       required
                     >
                       <option value="">Pilih Gender</option>
                       <option value="L">Laki-Laki</option>
                       <option value="P">Perempuan</option>
                     </select>
+                    {formErrors.gender && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.gender}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -798,7 +837,11 @@ const SantriController = () => {
                       name="classLevel"
                       value={form.classLevel}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className={`mt-1 w-full border ${
+                        formErrors.classLevel
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none`}
                       required
                     >
                       <option value="">Pilih Kelas</option>
@@ -809,6 +852,11 @@ const SantriController = () => {
                       <option value="5">5</option>
                       <option value="6">6</option>
                     </select>
+                    {formErrors.classLevel && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.classLevel}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -851,7 +899,11 @@ const SantriController = () => {
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => setNewSantriModal(false)}
+                    onClick={() => {
+                      setNewSantriModal(false);
+                      setFormErrors({});
+                      setApiError(null);
+                    }}
                     disabled={isParentLoading}
                     className={`bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors ${
                       isParentLoading ? "opacity-50 cursor-not-allowed" : ""
@@ -887,6 +939,8 @@ const SantriController = () => {
                     classLevel: "",
                     parentId: 0,
                   });
+                  setFormErrors({});
+                  setApiError(null);
                 }}
                 aria-label="Tutup Modal"
               >
@@ -896,6 +950,12 @@ const SantriController = () => {
               <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
                 Edit Data Santri
               </h2>
+
+              {apiError && (
+                <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700">
+                  <p>{apiError}</p>
+                </div>
+              )}
 
               <form onSubmit={handleEdit} className="space-y-4">
                 <div>
@@ -907,9 +967,16 @@ const SantriController = () => {
                     name="name"
                     value={form.name}
                     onChange={handleChange}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full mt-1 px-3 py-2 border ${
+                      formErrors.name ? "border-red-500" : "border-gray-300"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500`}
                     required
                   />
+                  {formErrors.name && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -920,13 +987,20 @@ const SantriController = () => {
                     name="gender"
                     value={form.gender}
                     onChange={handleChange}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full mt-1 px-3 py-2 border ${
+                      formErrors.gender ? "border-red-500" : "border-gray-300"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500`}
                     required
                   >
                     <option value="">Pilih Gender</option>
                     <option value="L">Laki-laki</option>
                     <option value="P">Perempuan</option>
                   </select>
+                  {formErrors.gender && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.gender}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -951,7 +1025,11 @@ const SantriController = () => {
                     name="classLevel"
                     value={form.classLevel}
                     onChange={handleChange}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full mt-1 px-3 py-2 border ${
+                      formErrors.classLevel
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500`}
                     required
                   >
                     <option value="">Pilih Level</option>
@@ -962,6 +1040,11 @@ const SantriController = () => {
                     <option value="5">Level 5</option>
                     <option value="6">Level 6</option>
                   </select>
+                  {formErrors.classLevel && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.classLevel}
+                    </p>
+                  )}
                 </div>
 
                 <div>

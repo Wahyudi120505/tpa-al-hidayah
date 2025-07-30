@@ -346,7 +346,6 @@ const StudentMemorizationController = () => {
       );
 
       if (response.ok) {
-        alert("Data hafalan berhasil diperbarui!");
         setForm({
           status: "",
           updatedAt: new Date().toISOString().split("T")[0],
@@ -420,7 +419,6 @@ const StudentMemorizationController = () => {
         return;
       }
 
-      alert("Berhasil menambah setoran hafalan");
       setForm({
         status: "",
         updatedAt: new Date().toISOString().split("T")[0],

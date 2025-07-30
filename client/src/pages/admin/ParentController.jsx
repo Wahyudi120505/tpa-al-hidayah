@@ -25,6 +25,7 @@ const ParentController = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorForm, setErrorForm] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [newParentModal, setNewParentModal] = useState(false);
@@ -84,7 +85,6 @@ const ParentController = () => {
       setError("Gagal mengambil data orang tua");
     } finally {
       setLoading(false);
-      // fetchData();
     }
   };
 
@@ -105,6 +105,14 @@ const ParentController = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorForm(null);
+    
+    // Validation
+    if (!form.name || !form.email || !form.password) {
+      setErrorForm("Nama, email, dan password wajib diisi");
+      return;
+    }
+
     try {
       const token = Cookies.get("authToken");
 
@@ -118,15 +126,16 @@ const ParentController = () => {
       });
 
       if (response.ok) {
-        alert("Data orang tua berhasil ditambahkan!");
         setForm({ name: "", email: "", noHp: "", password: "" });
         setNewParentModal(false);
+        fetchData();
       } else {
-        alert("Gagal mengirim data");
+        const errorData = await response.json();
+        setErrorForm(errorData.message || "Gagal menambahkan data orang tua");
       }
     } catch (err) {
       console.error("Error saat mengirim data:", err);
-      alert("Terjadi kesalahan server");
+      setErrorForm("Terjadi kesalahan server");
     }
   };
 
@@ -137,13 +146,22 @@ const ParentController = () => {
       name: parent.name || "",
       email: parent.email || "",
       noHp: parent.noHp || "",
-      password: parent.password || "",
+      password: "", // Don't show existing password for security
     });
+    setErrorForm(null);
     setShowEditModal(true);
   };
 
   const handleEdit = async (e) => {
     e.preventDefault();
+    setErrorForm(null);
+    
+    // Validation
+    if (!form.name || !form.email || !form.password) {
+      setErrorForm("Nama, email, dan password wajib diisi");
+      return;
+    }
+
     try {
       const token = Cookies.get("authToken");
       const response = await fetch(
@@ -159,7 +177,6 @@ const ParentController = () => {
       );
 
       if (response.ok) {
-        alert("Data orang tua berhasil diperbarui!");
         setForm({
           id: "",
           name: "",
@@ -172,13 +189,11 @@ const ParentController = () => {
         fetchData();
       } else {
         const errorData = await response.json();
-        alert(
-          `Gagal memperbarui data: ${errorData.message || "Unknown error"}`
-        );
+        setErrorForm(errorData.message || "Gagal memperbarui data orang tua");
       }
     } catch (error) {
       console.error("Error updating parent:", error);
-      alert("Gagal memperbarui data orang tua");
+      setErrorForm("Terjadi kesalahan saat memperbarui data");
     }
   };
 
@@ -224,8 +239,8 @@ const ParentController = () => {
       setDetailInfoModal(jsonData);
       setInfoModal(true);
     } catch (error) {
-      // alert("ini " + detailInfoModal);
       console.error("Gagal mengambil detail data:", error);
+      setError("Gagal memuat detail orang tua");
     }
   };
 
@@ -246,14 +261,14 @@ const ParentController = () => {
       });
 
       if (response.ok) {
-        alert("Data berhasil dihapus.");
         fetchData();
       } else {
-        alert("Gagal menghapus data. Silakan coba lagi.");
+        const errorData = await response.json();
+        setError(errorData.message || "Gagal menghapus data");
       }
     } catch (error) {
       console.error("Terjadi kesalahan saat menghapus data:", error);
-      alert("Terjadi kesalahan pada server.");
+      setError("Terjadi kesalahan pada server");
     }
   };
 
@@ -469,7 +484,7 @@ const ParentController = () => {
                           <button
                             onClick={() => handleClick(item.id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
-                            title="Delete"
+                            title="Detail"
                           >
                             <Info className="w-5 h-5" />
                           </button>
@@ -554,10 +569,10 @@ const ParentController = () => {
             </div>
           </div>
         )}
+        {/* Edit Parent Modal */}
         {showEditModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in border border-gray-100">
-              {/* Tombol Tutup */}
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
                 onClick={() => {
@@ -570,18 +585,23 @@ const ParentController = () => {
                     noHp: "",
                     password: "",
                   });
+                  setErrorForm(null);
                 }}
                 aria-label="Tutup Modal"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Judul */}
+              {errorForm && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                  {errorForm}
+                </div>
+              )}
+
               <h2 className="text-2xl font-bold text-emerald-700 mb-6 border-b pb-2">
                 Edit Data Orang Tua
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleEdit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -599,7 +619,7 @@ const ParentController = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    email
+                    Email
                   </label>
                   <input
                     type="email"
@@ -613,7 +633,7 @@ const ParentController = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    No Hp
+                    No HP
                   </label>
                   <input
                     type="text"
@@ -641,7 +661,7 @@ const ParentController = () => {
 
                 <button
                   type="submit"
-                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
                   disabled={loading}
                 >
                   {loading ? "Memuat..." : "Simpan Perubahan"}
@@ -650,24 +670,18 @@ const ParentController = () => {
             </div>
           </div>
         )}
+        {/* Info Modal */}
         {infoModal && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50 p-4 animate-fade-in"
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="modal-title"
-          >
-            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 border border-gray-100 transition-all duration-300 ease-out scale-100">
-              {/* Tombol Tutup */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 border border-gray-100 animate-fade-in">
               <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
                 onClick={() => setInfoModal(false)}
                 aria-label="Tutup modal"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Header */}
               <div className="flex items-center gap-3 mb-6 border-b pb-4">
                 <UserCircle className="w-8 h-8 text-emerald-600" />
                 <h2 className="text-2xl font-bold text-emerald-700">
@@ -675,7 +689,6 @@ const ParentController = () => {
                 </h2>
               </div>
 
-              {/* Konten */}
               <div className="space-y-4 text-sm text-gray-800">
                 <div className="flex items-center gap-3">
                   <User className="text-emerald-500 w-5 h-5" />
@@ -704,7 +717,6 @@ const ParentController = () => {
                 </div>
               </div>
 
-              {/* Tombol */}
               <div className="mt-8 flex justify-end">
                 <button
                   className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
@@ -716,109 +728,95 @@ const ParentController = () => {
             </div>
           </div>
         )}
+        {/* Add Parent Modal */}
         {newParentModal && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="modal-title"
-          >
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md sm:max-w-lg transform transition-all duration-300 scale-100">
-              {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
-                onClick={() => setNewParentModal(false)}
+                onClick={() => {
+                  setNewParentModal(false);
+                  setErrorForm(null);
+                }}
                 aria-label="Tutup modal"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Modal Header */}
-              <h2
-                id="modal-title"
-                className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2"
-              >
+              {errorForm && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                  {errorForm}
+                </div>
+              )}
+
+              <h2 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">
                 Tambah Orang Tua
               </h2>
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label className="block text-sm font-medium text-gray-700">
                       Nama
                     </label>
                     <input
                       type="text"
-                      id="name"
                       name="name"
                       value={form.name}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label className="block text-sm font-medium text-gray-700">
                       Email
                     </label>
                     <input
                       type="email"
-                      id="email"
                       name="email"
                       value={form.email}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="noHp"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label className="block text-sm font-medium text-gray-700">
                       No Telpon
                     </label>
                     <input
                       type="text"
-                      id="noHp"
                       name="noHp"
                       value={form.noHp}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="password"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label className="block text-sm font-medium text-gray-700">
                       Password
                     </label>
                     <input
                       type="password"
-                      id="password"
                       name="password"
                       value={form.password}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Modal Footer */}
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                    onClick={() => setNewParentModal(false)}
+                    onClick={() => {
+                      setNewParentModal(false);
+                      setErrorForm(null);
+                    }}
                   >
                     Batal
                   </button>
@@ -833,7 +831,7 @@ const ParentController = () => {
               </form>
             </div>
           </div>
-        )}{" "}
+        )}
       </div>
     </>
   );
