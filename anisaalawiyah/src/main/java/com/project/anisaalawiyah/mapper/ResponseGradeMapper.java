@@ -1,29 +1,45 @@
 package com.project.anisaalawiyah.mapper;
 
 import com.project.anisaalawiyah.model.Grade;
+import com.project.anisaalawiyah.model.GradeDetail;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
+import java.util.List;
 
-import com.project.anisaalawiyah.dto.response.ResponseGrade;
-@RequiredArgsConstructor
+import org.springframework.stereotype.Component;
+
+
+import com.project.anisaalawiyah.dto.response.GradeDto;
+import com.project.anisaalawiyah.dto.response.StudentWithGradesDto;
+
 @Component
-@Service
-public class ResponseGradeMapper extends ADATAMapper<Grade, ResponseGrade> {
-       private final ResponseStudentMapper responseStudentMapper;
-       private final ResponseSubjectMapper responseSubjectMapper;
-  
-    public ResponseGrade convert(Grade grade) {
-    
-        return ResponseGrade.builder()
-                .id(grade.getId())
-                .semester(grade.getSemester())
-                .score(grade.getScore())
-                .academicYear(grade.getAcademicYear())
-                .responseStudent(responseStudentMapper.convert(grade.getStudent())) 
-                .responseSubject(responseSubjectMapper.convert(grade.getSubject()))
-                .build();
+@RequiredArgsConstructor
+public class ResponseGradeMapper {
+
+    private final ResponseSubjectMapper responseSubjectMapper;
+
+    public GradeDto toGradeDto(GradeDetail detail) {
+        return new GradeDto(
+            detail.getId(),
+            responseSubjectMapper.convert(detail.getSubject()),
+            detail.getScore()
+        );
     }
-} 
+
+    public StudentWithGradesDto convert(Grade grade) {
+        List<GradeDto> gradeDtos = grade.getGrades().stream()
+                                        .map(this::toGradeDto)
+                                        .toList();
+
+        return new StudentWithGradesDto(
+            grade.getId(),
+            grade.getStudent().getName(),
+            grade.getAcademicYear(),
+            grade.getSemester(),
+            gradeDtos
+        );
+    }
+
+  
+}

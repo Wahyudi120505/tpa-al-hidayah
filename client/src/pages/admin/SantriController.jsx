@@ -22,6 +22,8 @@ import {
   Users,
   Hash,
   Baby,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 const SantriController = () => {
@@ -47,6 +49,7 @@ const SantriController = () => {
   const [sortOrder, setSortOrder] = useState("ASC");
   const [genderFilter, setGenderFilter] = useState("");
   const [classLevelFilter, setClassLevelFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [form, setForm] = useState({
     id: "",
@@ -55,6 +58,7 @@ const SantriController = () => {
     birthDate: "",
     classLevel: "",
     parentId: 0,
+    status: true,
   });
 
   useEffect(() => {
@@ -66,6 +70,7 @@ const SantriController = () => {
     searchQuery,
     genderFilter,
     classLevelFilter,
+    statusFilter,
   ]);
 
   const fetchData = async () => {
@@ -82,6 +87,18 @@ const SantriController = () => {
 
       if (searchQuery.trim()) {
         params.append("query", searchQuery.trim());
+      }
+
+      if (genderFilter) {
+        params.append("gender", genderFilter);
+      }
+
+      if (classLevelFilter) {
+        params.append("classLevel", classLevelFilter);
+      }
+
+      if (statusFilter !== "") {
+        params.append("status", statusFilter);
       }
 
       const response = await fetch(
@@ -101,21 +118,7 @@ const SantriController = () => {
 
       const jsonData = await response.json();
 
-      let filteredData = jsonData.content || [];
-
-      if (genderFilter) {
-        filteredData = filteredData.filter(
-          (item) => item.gender === genderFilter
-        );
-      }
-
-      if (classLevelFilter) {
-        filteredData = filteredData.filter(
-          (item) => item.classLevel === classLevelFilter
-        );
-      }
-
-      setData(filteredData);
+      setData(jsonData.content || []);
       setTotalPages(jsonData.totalPages || 0);
       setTotalElements(jsonData.totalElements || 0);
     } catch (error) {
@@ -136,6 +139,7 @@ const SantriController = () => {
     setSearchQuery("");
     setGenderFilter("");
     setClassLevelFilter("");
+    setStatusFilter("");
     setCurrentPage(1);
     setSortOrder("DESC");
     setPageSize(10);
@@ -208,7 +212,7 @@ const SantriController = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError(null);
-    
+
     if (!validateForm()) return;
 
     try {
@@ -234,6 +238,7 @@ const SantriController = () => {
         birthDate: "",
         classLevel: "",
         parentId: 0,
+        status: true,
       });
       setNewSantriModal(false);
       fetchData();
@@ -254,6 +259,7 @@ const SantriController = () => {
         : "",
       classLevel: student.classLevel || "",
       parentId: student.responeParent?.id || 0,
+      status: student.status !== undefined ? student.status : true,
     });
     setShowEditModal(true);
   };
@@ -261,7 +267,7 @@ const SantriController = () => {
   const handleEdit = async (e) => {
     e.preventDefault();
     setApiError(null);
-    
+
     if (!validateForm()) return;
 
     try {
@@ -312,9 +318,7 @@ const SantriController = () => {
       })
       .map((parent, index) => {
         const value = (parent.id || parent.parentId).toString();
-        const label = parent.name
-          ? `${parent.name}`
-          : `Parent ${index + 1}`;
+        const label = parent.name ? `${parent.name}` : `Parent ${index + 1}`;
         return {
           value,
           label,
@@ -511,6 +515,24 @@ const SantriController = () => {
                       <option value="6">Level 6</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      <option value="">Semua Status</option>
+                      <option value="true">Aktif</option>
+                      <option value="false">Non Aktif</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -541,12 +563,12 @@ const SantriController = () => {
                 <Users className="mx-auto h-12 w-12 text-gray-700" />
               </div>
               <p className="text-gray-500 text-lg font-medium">
-                {searchQuery || genderFilter || classLevelFilter
+                {searchQuery || genderFilter || classLevelFilter || statusFilter
                   ? "Tidak ada data yang sesuai filter"
                   : "Belum ada data santri"}
               </p>
               <p className="text-gray-400 mt-1">
-                {searchQuery || genderFilter || classLevelFilter
+                {searchQuery || genderFilter || classLevelFilter || statusFilter
                   ? "Coba ubah kriteria pencarian"
                   : "Data santri akan ditampilkan di sini"}
               </p>
@@ -570,6 +592,9 @@ const SantriController = () => {
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Level Kelas
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Action
@@ -631,6 +656,27 @@ const SantriController = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
                           {item.classLevel || "-"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.status
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {item.status ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Aktif
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Non Aktif
+                            </>
+                          )}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -1083,6 +1129,20 @@ const SantriController = () => {
                     key={`parent-select-edit-${tampIdParent.length}`} // Force re-render
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="true">Aktif</option>
+                    <option value="false">Non Aktif</option>
+                  </select>
+                </div>
 
                 <button
                   type="submit"
@@ -1167,6 +1227,19 @@ const SantriController = () => {
                     </label>
                     <p className="font-semibold">
                       {detailInfoModal.responeParent?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Info className="mt-1 text-emerald-500" />
+                  <div>
+                    <label className="text-xs uppercase text-gray-400">
+                      Status
+                    </label>
+                    <p className="font-semibold">
+                      {(detailInfoModal.status) === "true"
+                        ? "Aktif"
+                        : "Non Aktif"}
                     </p>
                   </div>
                 </div>

@@ -7,6 +7,7 @@ public record RequestFindAllParent(
     Integer page,
     Integer size,
     String query,
+    Boolean status,
     ESortOrderBy sortOrder,
      String sortBy
 ) {}

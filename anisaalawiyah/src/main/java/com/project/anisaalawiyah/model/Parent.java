@@ -34,7 +34,8 @@ public class Parent extends ASoftDeletable {
     private Long id;
     private String name;
     private String email;
-    private String noHp; 
+    private String noHp;
+    private Boolean status; 
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Student> students;

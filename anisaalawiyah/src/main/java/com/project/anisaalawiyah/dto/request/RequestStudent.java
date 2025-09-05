@@ -8,7 +8,8 @@ public record RequestStudent(
  String gender,
  LocalDate birthDate,
  String classLevel,
- Long parentId
+ Long parentId,
+ Boolean status
 
 ) {
 }

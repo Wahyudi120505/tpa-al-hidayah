@@ -50,6 +50,7 @@ public Parent create(RequestParent request) {
             .name(request.name())
             .email(request.email())
             .noHp(request.noHp())
+            .status(request.status())
             .build();
     parent = parentRepository.save(parent);
 
@@ -71,6 +72,7 @@ public Parent create(RequestParent request) {
         parent.setName(request.name());
         parent.setEmail(request.email());
         parent.setNoHp(request.noHp());
+        parent.setStatus(request.status());
         return parentRepository.save(parent);
     }
 
@@ -89,10 +91,17 @@ public Parent create(RequestParent request) {
                 cb.like(cb.lower(root.get("noHp")), "%" + query.toLowerCase() + "%")
             );
     }
-
+    private static Specification<Parent> withStatus(Boolean status) {
+    return (root, q, cb) -> {
+        if (status == null) {
+            return null;
+        }
+        return cb.equal(root.get("status"), status);
+    };
+}
     @Override
     public Page<Parent> getAll(RequestFindAllParent request) throws ServiceException {
- Sort sort = Sort.by(
+     Sort sort = Sort.by(
         request.sortOrder() == com.project.anisaalawiyah.enums.ESortOrderBy.ASC ? Sort.Direction.ASC : Sort.Direction.DESC,
         request.sortBy() != null ? request.sortBy() : "id"
     );
@@ -103,7 +112,8 @@ public Parent create(RequestParent request) {
         );
 
         Specification<Parent> spec = Specification
-            .where(withQuery(request.query()));
+            .where(withQuery(request.query()))
+            .and(withStatus(request.status())); 
 
         return parentRepository.findAll(spec, pageable);
     }

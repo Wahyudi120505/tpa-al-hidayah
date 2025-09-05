@@ -41,32 +41,38 @@ public class ReportServiceImpl implements ReportService {
     private static final String REPORT_CARD_XML = "report_card.jrxml";
 
     @Override
-    public ResponseReportDto generateStudentReport(Long studentId, EReportFileType fileType) throws IOException {
+    public ResponseReportDto generateStudentReport(Long studentId, String semester, String academicYear,
+            EReportFileType fileType) throws IOException {
         try {
-            // Validasi dan ambil data student
             Student student = studentRepository.findById(studentId)
                     .orElseThrow(() -> new RuntimeException("Student not found"));
 
             Map<String, Object> params = new HashMap<>();
             params.put("student_id", studentId);
-            params.put("print_date", LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", new Locale("id", "ID")))); 
+            params.put("semester", semester);
+            params.put("academic_year", academicYear);
+            params.put("print_date",
+                    LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", new Locale("id", "ID"))));
             params.put("logo1", "classpath:static/logo.png");
-            params.put("logo2", "classpath:static/logo2.png"); 
-            
-            log.info("Generate report for student_id: {}", studentId);
-            log.info("Params: {}", params);
+            params.put("logo2", "classpath:static/logo2.png");
+
+            log.info("Generate report for student_id: {}, semester: {}, academicYear: {}", studentId, semester,
+                    academicYear);
 
             try (Connection connection = dataSource.getConnection()) {
                 byte[] reportBytes = generateReportHelper.generateReport(
                         XML_REPORTS_PATH + REPORT_CARD_XML,
                         params,
                         fileType,
-                        connection
-                );
+                        connection);
 
-                // Generate nama file yang jelas
-                String fileName = generateFileName(student, fileType);
-                
+                String fileName = String.format("Rapor_%s_%s_%s_%s%s",
+                        student.getName().replaceAll("\\s+", "_"),
+                        semester.replaceAll("\\s+", "_"),
+                        academicYear.replaceAll("\\s+", "_"),
+                        LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                        fileType.getExt());
+
                 return ResponseReportDto.builder()
                         .fileName(fileName)
                         .fileSize((long) reportBytes.length)
@@ -87,11 +93,11 @@ public class ReportServiceImpl implements ReportService {
     private String generateFileName(Student student, EReportFileType fileType) {
         String studentName = student.getName().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_");
         String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        
+
         // Ambil semester dan tahun ajaran dari grade pertama siswa (jika ada)
         String semester = "Semester_1";
         String academicYear = "2024-2025";
-        
+
         if (student.getGrades() != null && !student.getGrades().isEmpty()) {
             Grade firstGrade = student.getGrades().get(0);
             if (firstGrade.getSemester() != null && !firstGrade.getSemester().trim().isEmpty()) {
@@ -101,12 +107,12 @@ public class ReportServiceImpl implements ReportService {
                 academicYear = firstGrade.getAcademicYear().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_");
             }
         }
-        
-        return String.format("Rapor_%s_%s_%s_%s%s", 
-                studentName, 
-                semester, 
-                academicYear, 
-                currentDate, 
+
+        return String.format("Rapor_%s_%s_%s_%s%s",
+                studentName,
+                semester,
+                academicYear,
+                currentDate,
                 fileType.getExt());
     }
 
@@ -114,6 +120,3 @@ public class ReportServiceImpl implements ReportService {
         return filePath + "-" + studentId + fileType.getExt();
     }
 }
-
-
-

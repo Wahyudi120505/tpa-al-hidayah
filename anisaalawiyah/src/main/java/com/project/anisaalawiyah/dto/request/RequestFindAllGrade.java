@@ -6,6 +6,7 @@ public record RequestFindAllGrade(
     Integer page,
     Integer size,
     String query,
+    String semester,
     ESortOrderBy sortOrder,
      String sortBy
 ) {}

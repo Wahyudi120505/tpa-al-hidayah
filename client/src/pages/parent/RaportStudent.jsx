@@ -18,7 +18,9 @@ const RaportStudent = () => {
   const [parentId, setParentId] = useState("");
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(false); // New state for download animation
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [semester, setSemester] = useState("Ganjil"); // Default semester
+  const [academicYear, setAcademicYear] = useState("2024"); // Default academic year
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -62,15 +64,20 @@ const RaportStudent = () => {
     }
   };
 
-  const rapotStudent = async (params) => {
+  const rapotStudent = async (student) => {
     try {
-      setIsDownloading(true); // Start animation
+      setIsDownloading(true);
       const token = Cookies.get("authToken");
+      
+      // Use the correct endpoint with all required parameters
       const response = await fetch(
-        `http://localhost:8080/report/student/${params.id}/download`,
+        `http://localhost:8080/report/student/${student.id}/${semester}/${academicYear}/download`,
         {
           method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            accept: "*/*"
+          },
         }
       );
 
@@ -80,9 +87,20 @@ const RaportStudent = () => {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
+      // Get filename from content-disposition header or use a default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `Raport-${student.name}-${semester}-${academicYear}.pdf`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)$/);
+        if (filenameMatch && filenameMatch.length === 2) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Raport-${params.name}.pdf`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -91,7 +109,7 @@ const RaportStudent = () => {
       console.error("Gagal mengunduh raport:", error);
       setError("Gagal mengunduh raport. Silakan coba lagi.");
     } finally {
-      setIsDownloading(false); // Stop animation
+      setIsDownloading(false);
     }
   };
 
@@ -102,7 +120,7 @@ const RaportStudent = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 h-[600px]">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 min-h-[600px]">
       <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
         Data Raport Santri
       </h1>
@@ -119,6 +137,7 @@ const RaportStudent = () => {
           </div>
         </div>
       )}
+      
       <AnimatePresence>
         {!selectedStudent ? (
           <motion.div
@@ -132,7 +151,7 @@ const RaportStudent = () => {
                 key={student.id}
                 onClick={() => setSelectedStudent(student)}
                 whileHover={{ scale: 1.05 }}
-                className="bg-white rounded-2xl shadow-lg p-5 flex items-center justify-between hover:shadow-2xl transition duration-300"
+                className="bg-white rounded-2xl shadow-lg p-5 flex items-center justify-between hover:shadow-2xl transition duration-300 cursor-pointer"
               >
                 <div>
                   <p className="font-semibold text-lg text-gray-800 flex items-center gap-2">
@@ -157,7 +176,7 @@ const RaportStudent = () => {
               <User2 size={24} /> Detail Santri
             </h2>
 
-            <div className="space-y-3 text-gray-700">
+            <div className="space-y-3 text-gray-700 mb-4">
               <p className="flex items-center gap-2">
                 <User2 size={18} className="text-purple-500" />{" "}
                 <strong>Nama:</strong> {selectedStudent.name}
@@ -174,6 +193,35 @@ const RaportStudent = () => {
                 <User2 size={18} className="text-pink-500" />{" "}
                 <strong>Jenis Kelamin:</strong> {selectedStudent.gender}
               </p>
+            </div>
+            
+            {/* Semester and Academic Year Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Semester
+                </label>
+                <select
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="Ganjil">Ganjil</option>
+                  <option value="Genap">Genap</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tahun Akademik
+                </label>
+                <input
+                  type="text"
+                  value={academicYear}
+                  onChange={(e) => setAcademicYear(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Contoh: 2024"
+                />
+              </div>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-4">

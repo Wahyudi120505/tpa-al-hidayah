@@ -1,114 +1,159 @@
 package com.project.anisaalawiyah.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+
+
+import org.apache.logging.log4j.util.Strings;
 import org.hibernate.service.spi.ServiceException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+
+
+
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 
 import com.project.anisaalawiyah.dto.request.RequestFindAllGrade;
 import com.project.anisaalawiyah.dto.request.RequestGrade;
+import com.project.anisaalawiyah.dto.request.RequestGradeDetail;
 import com.project.anisaalawiyah.model.Grade;
+import com.project.anisaalawiyah.model.GradeDetail;
 import com.project.anisaalawiyah.model.Student;
 import com.project.anisaalawiyah.model.Subject;
 import com.project.anisaalawiyah.repository.GradeRepository;
 import com.project.anisaalawiyah.repository.StudentRepository;
 import com.project.anisaalawiyah.repository.SubjectRepository;
 import com.project.anisaalawiyah.service.GradeService;
-import org.apache.logging.log4j.util.Strings;
+
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
+
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class GradeServiceImpl implements GradeService {
-    
+
     private final GradeRepository gradeRepository;
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
+   
 
-    @Override
-    public Grade create(RequestGrade request) throws ServiceException {
-        Student student = studentRepository.findById(request.studentId())
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+  @Override
+public Grade create(RequestGrade request) {
+    Student student = studentRepository.findById(request.studentId())
+            .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        Subject subject = subjectRepository.findById(request.subjectId())
+    Grade grade = new Grade();
+    grade.setStudent(student);
+    grade.setSemester(request.semester());
+    grade.setAcademicYear(request.academicYear());
+
+    for (RequestGradeDetail detailReq : request.grades()) {
+        Subject subject = subjectRepository.findById(detailReq.subjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
 
-      Grade grade = Grade.builder()
+        GradeDetail detail = new GradeDetail();
+        detail.setStudentGrade(grade);  // pakai setter
+        detail.setSubject(subject);
+        detail.setScore(detailReq.score());
 
-            .score(request.score())
-            .semester(request.semester())
-            .student(student)
-            .academicYear(request.academicYear())
-            .subject(subject) 
-            .build();
-        return gradeRepository.save(grade);
+        grade.getGrades().add(detail);
     }
 
+    return gradeRepository.save(grade);
+}
+
     @Override
-    public Grade update(Long id, RequestGrade request) throws ServiceException {
-        Grade grade = gradeRepository.findById(id)
+    public Grade update(Long gradeId, RequestGrade request) {
+        Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new RuntimeException("Grade not found"));
-        grade.setScore(request.score());
-        grade.setSemester(request.semester());
 
         Student student = studentRepository.findById(request.studentId())
                 .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        Subject subject = subjectRepository.findById(request.subjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found"));
         grade.setStudent(student);
-        grade.setSubject(subject);
+        grade.setSemester(request.semester());
+        grade.setAcademicYear(request.academicYear());
+
+       
+        grade.getGrades().clear();
+
+       
+        for (RequestGradeDetail detailReq : request.grades()) {
+            Subject subject = subjectRepository.findById(detailReq.subjectId())
+                    .orElseThrow(() -> new RuntimeException("Subject not found"));
+
+            GradeDetail detail = new GradeDetail();
+        detail.setStudentGrade(grade);
+        detail.setSubject(subject);
+        detail.setScore(detailReq.score());
+
+            grade.getGrades().add(detail);
+        }
 
         return gradeRepository.save(grade);
     }
 
     @Override
-    public void delete(Long id) throws ServiceException {
-         Grade grade = gradeRepository.findById(id)
+    public void delete(Long gradeId) {
+        Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new RuntimeException("Grade not found"));
-
-        grade.setRowStatus((byte)0);
+        grade.setRowStatus((byte) 0);
         gradeRepository.save(grade);
     }
 
     @Override
-    public Grade findById(Long id) throws ServiceException {
-        return gradeRepository.findById(id)
+    public Grade findById(Long gradeId) {
+        return gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new RuntimeException("Grade not found"));
     }
 
-    private static Specification<Grade> withQuery(String query) {
-        return (root, q, cb) -> Strings.isBlank(query)
-            ? null
-            : cb.or(
-                cb.like(cb.lower(root.get("semester")), "%" + query.toLowerCase() + "%"),
-                cb.like(cb.lower(root.get("score").as(String.class)), "%" + query.toLowerCase() + "%"),
+   private static Specification<Grade> withFilters(String query, String semester) {
+    return (root, q, cb) -> {
+        List<Predicate> predicates = new ArrayList<>();
+
+        // Filter berdasarkan query (nama student)
+        if (!Strings.isBlank(query)) {
+            predicates.add(
                 cb.like(cb.lower(root.get("student").get("name")), "%" + query.toLowerCase() + "%")
             );
-    }
+        }
+
+        // Filter berdasarkan semester
+        if (!Strings.isBlank(semester)) {
+            predicates.add(cb.equal(cb.lower(root.get("semester")), semester.toLowerCase()));
+        }
+
+        if (predicates.isEmpty()) {
+            return null;
+        }
+        return cb.and(predicates.toArray(new Predicate[0]));
+    };
+}
 
     @Override
-    public Page<Grade> getAll(RequestFindAllGrade request) throws ServiceException {
- Sort sort = Sort.by(
+public Page<Grade> getAll(RequestFindAllGrade request) throws ServiceException {
+   Sort sort = Sort.by(
         request.sortOrder() == com.project.anisaalawiyah.enums.ESortOrderBy.ASC ? Sort.Direction.ASC : Sort.Direction.DESC,
         request.sortBy() != null ? request.sortBy() : "id"
     );
-
         PageRequest pageable = PageRequest.of(
             request.page() - 1,
             request.size(),
             sort
         );
 
-        Specification<Grade> spec = Specification
-            .where(withQuery(request.query()));
+    Specification<Grade> spec = Specification
+        .where(withFilters(request.query(), request.semester()));
 
-        return gradeRepository.findAll(spec, pageable);
-    }
+    return gradeRepository.findAll(spec, pageable);
+}
+
 }

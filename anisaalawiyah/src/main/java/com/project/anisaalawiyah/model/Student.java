@@ -37,6 +37,7 @@ public class Student extends ASoftDeletable {
     private String gender;
     private LocalDate birthDate;
     private String classLevel;
+    private Boolean status;
     
     @ManyToOne
     @JoinColumn(name = "parent_id")

@@ -1,5 +1,8 @@
 package com.project.anisaalawiyah.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.hibernate.annotations.Where;
 
 import com.project.anisaalawiyah.base.ASoftDeletable;
@@ -32,8 +35,7 @@ public class Grade extends ASoftDeletable {
     @JoinColumn(name = "student_id")
     private Student student;
 
-    @ManyToOne
-    @JoinColumn(name = "subject_id")
-    private Subject subject;
+    @OneToMany(mappedBy = "studentGrade", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<GradeDetail> grades = new ArrayList<>();
     
 }

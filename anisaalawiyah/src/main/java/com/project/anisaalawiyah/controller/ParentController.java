@@ -32,10 +32,11 @@ public ResponseEntity<?> getAll(
         @RequestParam(defaultValue = "1") Integer page,
         @RequestParam(defaultValue = "10") Integer size,
         @RequestParam(required = false) String query,
+        @RequestParam(required = false) Boolean status,
         @RequestParam(required = false) String sortBy,
         @RequestParam(defaultValue = "ASC") ESortOrderBy sortOrder){
     try {
-        RequestFindAllParent request = new RequestFindAllParent(page, size, query, sortOrder, sortBy);
+        RequestFindAllParent request = new RequestFindAllParent(page, size, query, status, sortOrder, sortBy);
         Page<Parent> result = parentService.getAll(request);
         Page<ResponseParent> response = result.map(responseParentMapper::convert);
         return ResponseEntity.ok(response);

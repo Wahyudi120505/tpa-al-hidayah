@@ -27,4 +27,5 @@ public class Subject extends ASoftDeletable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
+   
 }

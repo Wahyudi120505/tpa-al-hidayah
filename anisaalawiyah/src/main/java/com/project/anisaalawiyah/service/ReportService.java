@@ -10,5 +10,5 @@ import com.project.anisaalawiyah.enums.EReportFileType;
 
 public interface ReportService {
  
-ResponseReportDto generateStudentReport(Long studentId, EReportFileType fileType) throws IOException;
+public ResponseReportDto generateStudentReport(Long studentId, String semester, String academicYear, EReportFileType fileType) throws IOException;
 }

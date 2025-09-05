@@ -1,11 +1,14 @@
 package com.project.anisaalawiyah.dto.request;
 
+import java.util.List;
+
+
+
 public record RequestGrade(
-     String semester,
-     Double score,
-     String academicYear,
-     Long studentId,
-   Long subjectId
+    Long studentId,
+    String semester,
+    String academicYear,
+    List<RequestGradeDetail> grades
 ) {
     
 }

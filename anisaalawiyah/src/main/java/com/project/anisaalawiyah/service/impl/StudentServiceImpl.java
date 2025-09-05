@@ -36,6 +36,7 @@ public class StudentServiceImpl implements StudentService {
                 .name(requestStudent.name())
                 .birthDate(requestStudent.birthDate())
                 .gender(requestStudent.gender())
+                .status(requestStudent.status())
                 .parent(parent)
                 .classLevel(requestStudent.classLevel())
                 .build();
@@ -52,6 +53,7 @@ public class StudentServiceImpl implements StudentService {
         student.setBirthDate(requestStudent.birthDate());
         student.setClassLevel(requestStudent.classLevel());
         student.setGender(requestStudent.gender());
+        student.setStatus(requestStudent.status());
       
 
         return studentRepository.save(student);
@@ -72,17 +74,7 @@ public class StudentServiceImpl implements StudentService {
         studentRepository.save(student);
     }
 
-    // private static Specification<Student> withQuery(String query) {
-    // return (root, q, cb) -> Strings.isBlank(query)
-    // ? null
-    // : cb.or(
-    // cb.like(cb.lower(root.get("name")), "%" + query.toLowerCase() + "%"),
-    // cb.like(cb.lower(root.get("gender")), "%" + query.toLowerCase() + "%"),
-    // cb.like(cb.lower(root.get("classLevel")), "%" + query.toLowerCase() + "%")
-    // );
-    // }
-
-    // PERBAIKAN
+    
     private static Specification<Student> withQuery(String query) {
         return (root, q, cb) -> {
             if (Strings.isBlank(query)) {
@@ -95,21 +87,19 @@ public class StudentServiceImpl implements StudentService {
                     cb.like(cb.lower(root.get("name")), loweredQuery),
                     cb.like(cb.lower(root.get("gender")), loweredQuery),
                     cb.like(cb.lower(cb.concat("", root.get("classLevel"))), loweredQuery));
+
+      
         };
     }
 
-    // private static Specification<Student> withBirthDateRange(LocalDate start,
-    // LocalDate end) {
-    // return (root, q, cb) -> {
-    // Predicate predicate = cb.conjunction();
-    // if (start != null) predicate = cb.and(predicate,
-    // cb.greaterThanOrEqualTo(root.get("birthDate"), start));
-    // if (end != null) predicate = cb.and(predicate,
-    // cb.lessThanOrEqualTo(root.get("birthDate"), end));
-    // return predicate;
-    // };
-    // }
-
+   private static Specification<Student> withStatus(Boolean status) {
+    return (root, q, cb) -> {
+        if (status == null) {
+            return null;
+        }
+        return cb.equal(root.get("status"), status);
+    };
+}
     @Override
     public Page<Student> getAll(RequestFindAllStudent request) throws ServiceException {
         Sort sort = Sort.by(
@@ -122,7 +112,8 @@ public class StudentServiceImpl implements StudentService {
                 sort);
 
         Specification<Student> spec = Specification
-                .where(withQuery(request.query()));
+                .where(withQuery(request.query()))
+                 .and(withStatus(request.status())); 
 
         return studentRepository.findAll(spec, pageable);
     }

@@ -12,5 +12,6 @@ public class ResponseParent{
     private String name;
     private String email;
     private String noHp;
+    private Boolean status;
    
 } 

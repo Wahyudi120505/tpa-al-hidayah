@@ -12,4 +12,7 @@ public interface GradeRepository extends JpaRepository<Grade, Long>, JpaSpecific
     @Query("SELECT g FROM Grade g WHERE g.student.id = :studentId AND g.semester = :semester")
     List<Grade> findByStudentIdAndSemester(@Param("studentId") Long studentId, @Param("semester") String semester);
     List<Grade> findByStudentId(Long studentId);
+
+    @Query("SELECT DISTINCT g.academicYear FROM Grade g WHERE g.student.id = :studentId ORDER BY g.academicYear DESC")
+    List<String> findDistinctAcademicYearsByStudentId(@Param("studentId") Long studentId);
 }

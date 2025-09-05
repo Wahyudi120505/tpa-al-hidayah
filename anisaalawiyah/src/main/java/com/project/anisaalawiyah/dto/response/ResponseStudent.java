@@ -13,4 +13,5 @@ public class ResponseStudent{
     private LocalDate birthDate;
     private String classLevel;
     private ResponseParent responeParent;
+    private Boolean status;
 }

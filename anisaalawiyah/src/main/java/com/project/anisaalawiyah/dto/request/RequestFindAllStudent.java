@@ -11,7 +11,8 @@ public record RequestFindAllStudent(
     ESortOrderBy sortOrder,
     String sortBy,
     LocalDate startBirthDate,
-    LocalDate endBirthDate
+    LocalDate endBirthDate,
+    Boolean status
     // Integer rowStatus
 ) {}
 

@@ -1,5 +1,7 @@
 package com.project.anisaalawiyah.dto.response;
 
+
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,7 +13,5 @@ public class ResponseGrade{
     private String semester;
     private String academicYear;
     private ResponseStudent responseStudent;
-
     private ResponseSubject responseSubject;
-
-   }
+}

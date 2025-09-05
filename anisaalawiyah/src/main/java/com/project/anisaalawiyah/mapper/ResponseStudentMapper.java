@@ -20,8 +20,9 @@ public class ResponseStudentMapper {
                 .gender(student.getGender())
                 .birthDate(student.getBirthDate())
                 .classLevel(student.getClassLevel())
-                 .responeParent(
-                student.getParent() != null 
+                .status(student.getStatus())
+                .responeParent(
+                 student.getParent() != null 
                     ? responseParentMapper.convert(student.getParent()) 
                     : null
             )

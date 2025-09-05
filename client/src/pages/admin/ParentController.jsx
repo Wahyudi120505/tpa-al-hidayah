@@ -19,6 +19,8 @@ import {
   Mail,
   Phone,
   UserCircle,
+  XCircle,
+  CheckCircle,
 } from "lucide-react";
 
 const ParentController = () => {
@@ -36,13 +38,21 @@ const ParentController = () => {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortOrder, setSortOrder] = useState("ASC");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    noHp: "",
+    password: "",
+    status: true,
+  });
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, pageSize, sortOrder, searchQuery]);
+  }, [currentPage, pageSize, sortOrder, searchQuery, statusFilter]);
 
   const fetchData = async () => {
     const token = Cookies.get("authToken");
@@ -59,6 +69,10 @@ const ParentController = () => {
 
       if (searchQuery.trim()) {
         params.append("query", searchQuery.trim());
+      }
+
+      if (statusFilter !== "") {
+        params.append("status", statusFilter);
       }
 
       const response = await fetch(
@@ -88,13 +102,6 @@ const ParentController = () => {
     }
   };
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    noHp: "",
-    password: "",
-  });
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -106,7 +113,7 @@ const ParentController = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorForm(null);
-    
+
     // Validation
     if (!form.name || !form.email || !form.password) {
       setErrorForm("Nama, email, dan password wajib diisi");
@@ -146,7 +153,8 @@ const ParentController = () => {
       name: parent.name || "",
       email: parent.email || "",
       noHp: parent.noHp || "",
-      password: "", // Don't show existing password for security
+      password: "",
+      status: parent.status !== undefined ? parent.status : true,
     });
     setErrorForm(null);
     setShowEditModal(true);
@@ -155,7 +163,7 @@ const ParentController = () => {
   const handleEdit = async (e) => {
     e.preventDefault();
     setErrorForm(null);
-    
+
     // Validation
     if (!form.name || !form.email || !form.password) {
       setErrorForm("Nama, email, dan password wajib diisi");
@@ -183,6 +191,7 @@ const ParentController = () => {
           email: "",
           noHp: "",
           password: "",
+          status: true,
         });
         setShowEditModal(false);
         setSelectedParentId(null);
@@ -205,6 +214,7 @@ const ParentController = () => {
 
   const handleReset = () => {
     setSearchQuery("");
+    setStatusFilter("");
     setCurrentPage(1);
     setSortOrder("DESC");
     setPageSize(10);
@@ -355,6 +365,25 @@ const ParentController = () => {
                 </button>
               </div>
 
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">Semua Status</option>
+                  <option value="true">Aktif</option>
+                  <option value="false">Non Aktif</option>
+                </select>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex space-x-2">
                 <button
@@ -418,14 +447,17 @@ const ParentController = () => {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       No
                     </th>
-                    <th className="px-20 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-20 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nama
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       No. HP
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Action
@@ -464,6 +496,27 @@ const ParentController = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.noHp || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.status
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {item.status ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Aktif
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Non Aktif
+                            </>
+                          )}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-2">
@@ -584,6 +637,7 @@ const ParentController = () => {
                     email: "",
                     noHp: "",
                     password: "",
+                    status: true,
                   });
                   setErrorForm(null);
                 }}
@@ -643,6 +697,20 @@ const ParentController = () => {
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="true">Aktif</option>
+                    <option value="false">Non Aktif</option>
+                  </select>
                 </div>
 
                 <div>
@@ -713,6 +781,18 @@ const ParentController = () => {
                   <div>
                     <p className="text-xs text-gray-500">No Telpon</p>
                     <p className="font-medium">{detailInfoModal.noHp || "-"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Info className="text-emerald-500 w-5 h-5" />
+                  <div>
+                    <p className="text-xs text-gray-500">Status</p>
+                    <p className="font-semibold">
+                      {detailInfoModal.status === "true"
+                        ? "Aktif"
+                        : "Non Aktif"}
+                    </p>
                   </div>
                 </div>
               </div>

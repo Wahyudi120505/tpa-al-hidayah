@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Cookies from "js-cookie";
 import Sidebar from "../../components/admin/Sidebar";
 import {
@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import Select from "react-select";
 
+const API_BASE_URL = "http://localhost:8080/api";
+
 const GradeController = () => {
   const [dataGrades, setDataGrades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,16 +44,32 @@ const GradeController = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(1);
-  const [classLevelFilter, setClassLevelFilter] = useState(""); // New state for class filter
+  const [classLevelFilter, setClassLevelFilter] = useState("");
   const [form, setForm] = useState({
     semester: "",
     academicYear: "",
     studentId: "",
-    scores: [], // Array to store { subjectId, score } objects
+    grades: [],
   });
   const [formError, setFormError] = useState(null);
+  console.log(dataGrades);
 
-  const fetchData = async () => {
+  const resetForm = () => {
+    setForm({
+      semester: "",
+      academicYear: "",
+      studentId: "",
+      grades: subjects.map((subject) => ({
+        subjectId: subject.id,
+        score: "",
+      })),
+    });
+    setClassLevelFilter("");
+    setFormError(null);
+    setCurrentSlide(1);
+  };
+
+  const fetchGrades = async () => {
     const token = Cookies.get("authToken");
     setLoading(true);
     setError(null);
@@ -67,73 +85,91 @@ const GradeController = () => {
         params.append("query", searchQuery.trim());
       }
 
-      const gradesResponse = await fetch(
-        `http://localhost:8080/api/grades?${params}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!gradesResponse.ok) {
-        throw new Error(`HTTP error! status: ${gradesResponse.status}`);
+      const response = await fetch(`${API_BASE_URL}/grades?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const gradesData = await gradesResponse.json();
-      setDataGrades(gradesData.content || []);
-      setTotalPages(gradesData.totalPages || 0);
-      setTotalElements(gradesData.totalElements || 0);
-
-      const studentsResponse = await fetch(
-        "http://localhost:8080/api/students?page=1&size=1000&sortOrder=ASC",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!studentsResponse.ok) {
-        throw new Error(`HTTP error! status: ${studentsResponse.status}`);
-      }
-      const studentsData = await studentsResponse.json();
-      setStudents(studentsData.content || []);
-
-      const subjectsResponse = await fetch(
-        "http://localhost:8080/api/subjects?page=1&size=1000&sortOrder=ASC",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!subjectsResponse.ok) {
-        throw new Error(`HTTP error! status: ${subjectsResponse.status}`);
-      }
-      const subjectsData = await subjectsResponse.json();
-      setSubjects(subjectsData.content || []);
+      const data = await response.json();
+      setDataGrades(data.content || []);
+      setTotalPages(data.totalPages || 0);
+      setTotalElements(data.totalElements || 0);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
-      setError("Gagal mengambil data. Silakan coba lagi.");
+      console.error("Failed to fetch grades:", error);
+      setError("Gagal mengambil data nilai. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchStudents = async () => {
+    const token = Cookies.get("authToken");
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/students?page=1&size=1000&sortOrder=ASC`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setStudents(data.content || []);
+    } catch (error) {
+      console.error("Failed to fetch students:", error);
+      setError("Gagal mengambil data santri. Silakan coba lagi.");
+    }
+  };
+
+  const fetchSubjects = async () => {
+    const token = Cookies.get("authToken");
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/subjects?page=1&size=1000&sortOrder=ASC`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setSubjects(data.content || []);
+    } catch (error) {
+      console.error("Failed to fetch subjects:", error);
+      setError("Gagal mengambil data mata pelajaran. Silakan coba lagi.");
+    }
+  };
+
   useEffect(() => {
-    fetchData();
+    fetchStudents();
+    fetchSubjects();
+  }, []);
+
+  useEffect(() => {
+    fetchGrades();
   }, [currentPage, pageSize, sortOrder, searchQuery]);
 
   useEffect(() => {
-    if (subjects.length > 0 && form.scores.length === 0) {
+    if (subjects.length > 0 && form.grades.length === 0) {
       setForm((prev) => ({
         ...prev,
-        scores: subjects.map((subject) => ({
+        grades: subjects.map((subject) => ({
           subjectId: subject.id,
           score: "",
         })),
@@ -141,20 +177,29 @@ const GradeController = () => {
     }
   }, [subjects]);
 
-  // Filter student options based on classLevelFilter
-  const studentOptions = students
-    .filter((student) => !classLevelFilter || student.classLevel === classLevelFilter)
-    .map((student) => ({
-      value: student.id,
-      label: `${student.name} (Kelas ${student.classLevel || "-"})`,
-    }));
+  const studentOptions = useMemo(
+    () =>
+      students
+        .filter(
+          (student) =>
+            !classLevelFilter || student.classLevel === classLevelFilter
+        )
+        .map((student) => ({
+          value: student.id,
+          label: `${student.name} (Kelas ${student.classLevel || "-"})`,
+        })),
+    [students, classLevelFilter]
+  );
 
-  const subjectOptions = subjects.map((subject) => ({
-    value: subject.id,
-    label: `${subject.name}`,
-  }));
-
-  const classLevels = [...new Set(students.map((student) => student.classLevel).filter(Boolean))].sort();
+  const classLevels = useMemo(
+    () =>
+      [
+        ...new Set(
+          students.map((student) => student.classLevel).filter(Boolean)
+        ),
+      ].sort(),
+    [students]
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -168,14 +213,13 @@ const GradeController = () => {
   const handleScoreChange = (subjectId, value) => {
     setForm((prev) => ({
       ...prev,
-      scores: prev.scores.map((scoreObj) =>
-        scoreObj.subjectId === subjectId ? { ...scoreObj, score: value } : scoreObj
+      grades: prev.grades.map((grade) =>
+        grade.subjectId === subjectId ? { ...grade, score: value } : grade
       ),
     }));
     setFormError(null);
   };
 
-  // Handle class level filter change and reset studentId if necessary
   const handleClassLevelFilterChange = (e) => {
     const selectedClass = e.target.value;
     setClassLevelFilter(selectedClass);
@@ -184,7 +228,11 @@ const GradeController = () => {
       const selectedStudent = students.find(
         (student) => student.id === Number(form.studentId)
       );
-      if (selectedStudent && selectedStudent.classLevel !== selectedClass && selectedClass !== "") {
+      if (
+        selectedStudent &&
+        selectedStudent.classLevel !== selectedClass &&
+        selectedClass !== ""
+      ) {
         setForm((prev) => ({ ...prev, studentId: "" }));
       }
     }
@@ -207,64 +255,49 @@ const GradeController = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const invalidScores = form.scores.filter(
-      (scoreObj) =>
-        scoreObj.score === "" ||
-        isNaN(scoreObj.score) ||
-        scoreObj.score < 0 ||
-        scoreObj.score > 100
+    const invalidScores = form.grades.filter(
+      (grade) =>
+        grade.score === "" ||
+        isNaN(grade.score) ||
+        grade.score < 0 ||
+        grade.score > 100
     );
 
     if (invalidScores.length > 0) {
-      setFormError("Semua nilai harus diisi dengan angka valid antara 0 dan 100");
+      setFormError(
+        "Semua nilai harus diisi dengan angka valid antara 0 dan 100"
+      );
       return;
     }
 
     try {
       const token = Cookies.get("authToken");
-      const requests = form.scores.map((scoreObj) =>
-        fetch("http://localhost:8080/api/grades", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            semester: form.semester,
-            score: Number(scoreObj.score),
-            academicYear: form.academicYear,
-            studentId: Number(form.studentId),
-            subjectId: Number(scoreObj.subjectId),
-          }),
-        })
-      );
+      const response = await fetch(`${API_BASE_URL}/grades`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          studentId: Number(form.studentId),
+          semester: form.semester,
+          academicYear: form.academicYear,
+          grades: form.grades.map((g) => ({
+            score: Number(g.score),
+            subjectId: Number(g.subjectId),
+          })),
+        }),
+      });
 
-      const responses = await Promise.all(requests);
-      const errors = responses.filter((res) => !res.ok);
-
-      if (errors.length > 0) {
-        const errorData = await Promise.all(errors.map((res) => res.json()));
-        setFormError(
-          errorData
-            .map((err) => err.message || "Gagal menambah grade")
-            .join("; ")
-        );
+      if (!response.ok) {
+        const errorData = await response.json();
+        setFormError(errorData.message || "Gagal menambah grade");
         return;
       }
 
-      setForm({
-        semester: "",
-        academicYear: "",
-        studentId: "",
-        scores: subjects.map((subject) => ({
-          subjectId: subject.id,
-          score: "",
-        })),
-      });
+      resetForm();
       setNewGradeModal(false);
-      setCurrentSlide(1);
-      setClassLevelFilter("");
-      fetchData();
+      fetchGrades();
     } catch (error) {
       console.error("Error saat mengirim data:", error);
       setFormError("Terjadi kesalahan server");
@@ -274,7 +307,7 @@ const GradeController = () => {
   const handleClick = async (id) => {
     try {
       const token = Cookies.get("authToken");
-      const response = await fetch(`http://localhost:8080/api/grades/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/grades/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -295,16 +328,19 @@ const GradeController = () => {
     }
   };
 
-  const handleShowEditModal = (grade) => {
-    setSelectedGradeId(grade.id);
+  const handleShowEditModal = (item) => {
+    setSelectedGradeId(item.id);
     setForm({
-      semester: grade.semester || "",
-      score: grade.score ? grade.score.toString() : "", // Convert to string for input
-      academicYear: grade.academicYear || "",
-      studentId: grade.responseStudent?.id ? grade.responseStudent.id : "",
-      subjectId: grade.responseSubject?.id ? grade.responseSubject.id : "",
+      semester: item.semester || "",
+      academicYear: item.academicYear || "",
+      studentId: item.studentName || "",
+      grades: item.grades.map((g) => ({
+        subjectId: g.responseSubject?.id || "",
+        score: g.score?.toString() || "",
+      })),
     });
-    setClassLevelFilter(grade.responseStudent?.classLevel || "");
+
+    setClassLevelFilter(item.classLevel || "");
     setFormError(null);
     setShowEditModal(true);
   };
@@ -312,26 +348,36 @@ const GradeController = () => {
   const handleEdit = async (e) => {
     e.preventDefault();
 
-    if (
-      !form.semester ||
-      !form.score ||
-      !form.academicYear ||
-      !form.studentId ||
-      !form.subjectId
-    ) {
+    students.forEach((student) => {
+      if (student.name === form.studentId) {
+        form.studentId = student.id;
+      }
+    });
+    console.log(form.studentId);
+    if (!form.semester || !form.academicYear || !form.studentId) {
       setFormError("Semua field wajib diisi");
       return;
     }
 
-    if (isNaN(form.score) || form.score < 0 || form.score > 100) {
-      setFormError("Nilai harus antara 0 dan 100");
+    const invalidScores = form.grades.filter(
+      (grade) =>
+        grade.score === "" ||
+        isNaN(grade.score) ||
+        grade.score < 0 ||
+        grade.score > 100
+    );
+
+    if (invalidScores.length > 0) {
+      setFormError(
+        "Semua nilai harus diisi dengan angka valid antara 0 dan 100"
+      );
       return;
     }
 
     try {
       const token = Cookies.get("authToken");
       const response = await fetch(
-        `http://localhost:8080/api/grades/${selectedGradeId}`,
+        `${API_BASE_URL}/grades/${selectedGradeId}`,
         {
           method: "PUT",
           headers: {
@@ -339,34 +385,27 @@ const GradeController = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            semester: form.semester,
-            score: Number(form.score),
-            academicYear: form.academicYear,
             studentId: Number(form.studentId),
-            subjectId: Number(form.subjectId),
+            semester: form.semester,
+            academicYear: form.academicYear,
+            grades: form.grades.map((g) => ({
+              score: Number(g.score),
+              subjectId: Number(g.subjectId),
+            })),
           }),
         }
       );
 
-      if (response.ok) {
-        setForm({
-          semester: "",
-          academicYear: "",
-          studentId: "",
-          scores: subjects.map((subject) => ({
-            subjectId: subject.id,
-            score: "",
-          })),
-        });
-        setShowEditModal(false);
-        setSelectedGradeId(null);
-        setClassLevelFilter("");
-        setFormError(null);
-        fetchData();
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         setFormError(errorData.message || "Gagal memperbarui grade");
+        return;
       }
+
+      resetForm();
+      setShowEditModal(false);
+      setSelectedGradeId(null);
+      fetchGrades();
     } catch (error) {
       console.error("Error updating grade:", error);
       setFormError("Terjadi kesalahan server");
@@ -376,7 +415,7 @@ const GradeController = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchData();
+    fetchGrades();
   };
 
   const handleReset = () => {
@@ -384,7 +423,7 @@ const GradeController = () => {
     setCurrentPage(1);
     setSortOrder("DESC");
     setPageSize(10);
-    fetchData();
+    fetchGrades();
   };
 
   const handlePageChange = (newPage) => {
@@ -414,18 +453,7 @@ const GradeController = () => {
             <button
               onClick={() => {
                 setNewGradeModal(true);
-                setCurrentSlide(1);
-                setForm({
-                  semester: "",
-                  academicYear: "",
-                  studentId: "",
-                  scores: subjects.map((subject) => ({
-                    subjectId: subject.id,
-                    score: "",
-                  })),
-                });
-                setClassLevelFilter("");
-                setFormError(null);
+                resetForm();
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
             >
@@ -490,7 +518,7 @@ const GradeController = () => {
                   )}
                   <span>{sortOrder === "DESC" ? "Terbaru" : "Terlama"}</span>
                 </button>
-              </div>  
+              </div>
               <div className="flex space-x-2">
                 <button
                   type="submit"
@@ -510,21 +538,18 @@ const GradeController = () => {
             </form>
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-              <span className="ml-3 text-gray-600">Memuat data...</span>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
+              <span className="ml-4 text-lg text-gray-600">Memuat data...</span>
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <div className="text-red-500 mb-2">
-                <Info className="mx-auto h-12 w-12 text-gray-700" />
-              </div>
-              <p className="text-red-600 font-medium">{error}</p>
+              <Info className="mx-auto h-16 w-16 text-red-500" />
+              <p className="text-red-600 font-medium text-lg mt-2">{error}</p>
               <button
-                onClick={fetchData}
+                onClick={fetchGrades}
                 className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 Coba Lagi
@@ -558,19 +583,10 @@ const GradeController = () => {
                       Nama Santri
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mata Pelajaran
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nilai
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Semester
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Tahun Ajaran
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Orang Tua
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Action
@@ -578,52 +594,40 @@ const GradeController = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dataGrades.map((item, index) => (
+                  {dataGrades.map((item, itemIndex) => (
                     <tr
-                      key={item.id}
+                      key={`${itemIndex}`}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {(currentPage - 1) * pageSize + index + 1}
+                        {(currentPage - 1) * pageSize +
+                          itemIndex +
+                          1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
                               <span className="text-emerald-600 font-medium text-sm">
-                                {item.responseStudent?.name
-                                  ? item.responseStudent.name
-                                      .charAt(0)
-                                      .toUpperCase()
-                                  : "S"}
+                                {item.studentName
+                                  ? item.studentName.charAt(0).toUpperCase()
+                                  : "-"}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {item.responseStudent?.name ||
-                                "Nama tidak tersedia"}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Kelas: {item.responseStudent?.classLevel || "-"}
+                              {item.studentName || "Nama tidak tersedia"}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.responseSubject?.name || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.score ? item.score : "-"}
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.semester || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                         {item.academicYear || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {item.responseStudent?.responeParent?.name || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-2">
@@ -650,7 +654,6 @@ const GradeController = () => {
             </div>
           )}
         </div>
-
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
@@ -703,7 +706,6 @@ const GradeController = () => {
             </div>
           </div>
         )}
-
         {dataGrades.length > 0 && (
           <div className="mt-6 bg-emerald-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
@@ -721,7 +723,6 @@ const GradeController = () => {
             </div>
           </div>
         )}
-
         {newGradeModal && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
@@ -734,18 +735,7 @@ const GradeController = () => {
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
                 onClick={() => {
                   setNewGradeModal(false);
-                  setCurrentSlide(1);
-                  setForm({
-                    semester: "",
-                    academicYear: "",
-                    studentId: "",
-                    scores: subjects.map((subject) => ({
-                      subjectId: subject.id,
-                      score: "",
-                    })),
-                  });
-                  setClassLevelFilter("");
-                  setFormError(null);
+                  resetForm();
                 }}
                 aria-label="Tutup modal"
               >
@@ -878,7 +868,7 @@ const GradeController = () => {
                           <input
                             type="number"
                             value={
-                              form.scores.find(
+                              form.grades.find(
                                 (s) => s.subjectId === subject.id
                               )?.score || ""
                             }
@@ -914,18 +904,7 @@ const GradeController = () => {
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                       onClick={() => {
                         setNewGradeModal(false);
-                        setCurrentSlide(1);
-                        setForm({
-                          semester: "",
-                          academicYear: "",
-                          studentId: "",
-                          scores: subjects.map((subject) => ({
-                            subjectId: subject.id,
-                            score: "",
-                          })),
-                        });
-                        setClassLevelFilter("");
-                        setFormError(null);
+                        resetForm();
                       }}
                     >
                       Batal
@@ -954,7 +933,6 @@ const GradeController = () => {
             </div>
           </div>
         )}
-
         {showEditModal && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
@@ -962,22 +940,12 @@ const GradeController = () => {
             role="dialog"
             aria-labelledby="edit-modal-title"
           >
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 scale-100">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl transform transition-all duration-300 scale-100">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"
                 onClick={() => {
                   setShowEditModal(false);
-                  setForm({
-                    semester: "",
-                    academicYear: "",
-                    studentId: "",
-                    scores: subjects.map((subject) => ({
-                      subjectId: subject.id,
-                      score: "",
-                    })),
-                  });
-                  setClassLevelFilter("");
-                  setFormError(null);
+                  resetForm();
                 }}
                 aria-label="Tutup modal"
               >
@@ -996,99 +964,33 @@ const GradeController = () => {
                     {formError}
                   </div>
                 )}
-                <div className="space-y-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div>
-                    <label
-                      htmlFor="classLevelFilter"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Filter Kelas
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nama Santri
                     </label>
-                    <select
-                      id="classLevelFilter"
-                      value={classLevelFilter}
-                      onChange={handleClassLevelFilterChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                    >
-                      <option value="">Semua Kelas</option>
-                      {classLevels.map((level) => (
-                        <option key={level} value={level}>
-                          Kelas {level}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="studentId"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Santri
-                    </label>
-                    <Select
-                      inputId="studentId"
-                      name="studentId"
-                      options={studentOptions}
-                      onChange={(selectedOption) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          studentId: selectedOption?.value || "",
-                        }))
-                      }
+                    <input
+                      type="text"
                       value={
                         studentOptions.find(
-                          (opt) => opt.value === form.studentId
-                        ) || null
+                          (opt) => opt.value === Number(form.studentId)
+                        )?.label || form.studentId
                       }
-                      placeholder="Pilih Santri..."
-                      isClearable
-                      className="react-select-container"
-                      classNamePrefix="react-select"
-                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-700 cursor-not-allowed"
+                      readOnly
+                      disabled
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="subjectId"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Mata Pelajaran
-                    </label>
-                    <Select
-                      inputId="subjectId"
-                      name="subjectId"
-                      options={subjectOptions}
-                      onChange={(selectedOption) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          subjectId: selectedOption?.value || "",
-                        }))
-                      }
-                      value={
-                        subjectOptions.find(
-                          (opt) => opt.value === form.subjectId
-                        ) || null
-                      }
-                      placeholder="Pilih Mata Pelajaran..."
-                      isClearable
-                      className="react-select-container"
-                      classNamePrefix="react-select"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="semester"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Semester
                     </label>
                     <select
-                      id="semester"
                       name="semester"
                       value={form.semester}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 outline-none"
                       required
                     >
                       <option value="" disabled>
@@ -1099,61 +1001,71 @@ const GradeController = () => {
                     </select>
                   </div>
                   <div>
-                    <label
-                      htmlFor="score"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Nilai
-                    </label>
-                    <input
-                      type="number"
-                      id="score"
-                      name="score"
-                      value={form.score}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                      placeholder="Masukkan nilai (0-100)"
-                      min="0"
-                      max="100"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="academicYear"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Tahun Ajaran
                     </label>
                     <input
                       type="text"
-                      id="academicYear"
                       name="academicYear"
                       value={form.academicYear}
                       onChange={handleChange}
-                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 outline-none"
                       placeholder="Contoh: 2023/2024"
                       required
                     />
                   </div>
                 </div>
-                <div className="mt-6 flex justify-end space-x-3">
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">
+                    Nilai Mata Pelajaran
+                  </h3>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {form.grades && form.grades.length > 0 ? (
+                      form.grades.map((grade, index) => (
+                        <div
+                          key={grade.subjectId || index}
+                          className="flex items-center justify-between gap-4 p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700">
+                              {subjects.find((s) => s.id === grade.subjectId)
+                                ?.name || `Mata Pelajaran ${index + 1}`}
+                            </label>
+                          </div>
+                          <div className="w-32">
+                            <input
+                              type="number"
+                              value={grade.score}
+                              onChange={(e) =>
+                                handleScoreChange(
+                                  grade.subjectId,
+                                  e.target.value
+                                )
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                              placeholder="0-100"
+                              min="0"
+                              max="100"
+                              required
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">
+                        Tidak ada mata pelajaran
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                     onClick={() => {
                       setShowEditModal(false);
-                      setForm({
-                        semester: "",
-                        academicYear: "",
-                        studentId: "",
-                        scores: subjects.map((subject) => ({
-                          subjectId: subject.id,
-                          score: "",
-                        })),
-                      });
-                      setClassLevelFilter("");
-                      setFormError(null);
+                      resetForm();
                     }}
                   >
                     Batal
@@ -1163,13 +1075,14 @@ const GradeController = () => {
                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed"
                     disabled={loading}
                   >
-                    {loading ? "Memuat..." : "Simpan"}
+                    {loading ? "Menyimpan..." : "Simpan Semua Nilai"}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
         {infoModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-all duration-300 ease-in-out">
             <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-gray-100 animate-fade-in">
@@ -1193,34 +1106,11 @@ const GradeController = () => {
                       Nama Santri
                     </label>
                     <p className="font-semibold">
-                      {detailInfoModal.responseStudent?.name || "-"}
+                      {detailInfoModal.studentName || "-"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <BadgeInfo className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Mata Pelajaran
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.responseSubject?.name || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Calendar className="mt-1 text-emerald-500" />
-                  <div>
-                    <label className="text-xs uppercase text-gray-400">
-                      Nilai
-                    </label>
-                    <p className="font-semibold">
-                      {detailInfoModal.score
-                        ? detailInfoModal.score.toFixed(1)
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
+
                 <div className="flex items-start gap-3">
                   <Baby className="mt-1 text-emerald-500" />
                   <div>
@@ -1232,6 +1122,7 @@ const GradeController = () => {
                     </p>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-3">
                   <Calendar className="mt-1 text-emerald-500" />
                   <div>
@@ -1244,6 +1135,39 @@ const GradeController = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-emerald-600 mb-3">
+                  Daftar Nilai
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Mata Pelajaran
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                          Nilai
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailInfoModal.grades?.map((grade) => (
+                        <tr key={grade.id} className="border-t">
+                          <td className="px-4 py-2 text-sm">
+                            {grade.responseSubject?.name || "-"}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center">
+                            {grade.score ?? "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div className="mt-8 flex justify-end space-x-4">
                 <button
                   className="px-5 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"

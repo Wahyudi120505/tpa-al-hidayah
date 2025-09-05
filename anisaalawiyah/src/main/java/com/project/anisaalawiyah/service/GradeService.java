@@ -1,5 +1,7 @@
 package com.project.anisaalawiyah.service;
 
+
+
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.data.domain.Page;
 
@@ -13,4 +15,5 @@ public interface GradeService {
     void delete(Long id) throws ServiceException;
     Grade findById(Long id) throws ServiceException;
     Page<Grade> getAll(RequestFindAllGrade request) throws ServiceException;
+   
 }

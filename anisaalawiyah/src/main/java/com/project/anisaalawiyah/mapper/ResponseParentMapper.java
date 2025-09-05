@@ -16,6 +16,7 @@ public ResponseParent convert(Parent parent) {
         .email(parent.getEmail())
         .name(parent.getName())
         .noHp(parent.getNoHp())
+        .status(parent.getStatus())
         .build();
 }
 
