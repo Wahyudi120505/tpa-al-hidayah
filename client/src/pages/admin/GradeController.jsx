@@ -1098,7 +1098,7 @@ const GradeController = () => {
                 <Users className="w-6 h-6" /> Detail Nilai
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-sm text-gray-700">
                 <div className="flex items-start gap-3">
                   <User className="mt-1 text-emerald-500" />
                   <div>

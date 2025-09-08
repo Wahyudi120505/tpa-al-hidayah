@@ -60,7 +60,7 @@ const Sidebar = ({ menuActive }) => {
     },
     {
       id: "subject",
-      name: "Subject",
+      name: "Mata Pelajaran",
       icon: ScrollText,
       path: `${basePath}/subject`,
     },
